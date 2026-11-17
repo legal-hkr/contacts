@@ -1,4 +1,4 @@
-# Contacts
+# <img src="metadata/en-US/icon.png" width="42"/> Contacts
 
 Private contacts for Android.
 
