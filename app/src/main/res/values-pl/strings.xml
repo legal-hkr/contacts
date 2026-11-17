@@ -133,6 +133,24 @@
     <string name="msg_exported">Zapisano kontakty: %1$s (%2$s)</string>
     <string name="error_export_failed">Nie udało się zapisać pliku (%1$s).</string>
 
+    <!-- Accounts and moving -->
+    <string name="desc_accounts_shown">Pokazywane: %1$d z %2$d</string>
+    <string name="button_choose_accounts">Wybierz konta</string>
+    <string name="msg_account_hidden">Konto jest ukryte na liście (%1$s).</string>
+    <string name="menu_move_to_account">Przenieś na konto</string>
+    <string name="desc_move_to_account">Kopiuje kontakty na konto i usuwa je z telefonu</string>
+    <string name="msg_local_only_copy">Kontakty na tym telefonie nie są nigdzie synchronizowane. Jedyną kopią poza telefonem jest eksport do pliku vCard.</string>
+    <string name="menu_move_account">Przenieś do innego konta</string>
+    <string name="title_move_contacts">Przenieść kontakty (%1$d)?</string>
+    <string name="title_move_contact">Przenieść kontakt (%1$s)?</string>
+    <string name="msg_move_contacts">Każdy kontakt zostanie skopiowany na wybrane konto i usunięty z telefonu. Na serwer trafi przy najbliższej synchronizacji.</string>
+    <string name="msg_move_contact">Kontakt zostanie skopiowany na wybrane konto i usunięty z obecnego. Na serwer trafi przy najbliższej synchronizacji.</string>
+    <string name="button_move">Przenieś</string>
+    <string name="label_moving">Przenoszenie…</string>
+    <string name="msg_contacts_moved">Przeniesiono kontakty: %1$d (%2$s)</string>
+    <string name="msg_contact_moved">Przeniesiono kontakt: %1$s (%2$s)</string>
+    <string name="error_move_failed">Nie udało się przenieść kontaktów (przeniesiono: %1$d).</string>
+
     <!-- Search -->
     <string name="content_description_search">Szukaj</string>
     <string name="hint_search">Szukaj kontaktów</string>

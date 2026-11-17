@@ -28,6 +28,7 @@ sealed interface Screen : NavKey {
     ) : Screen
     @Serializable data object Settings : Screen
     @Serializable data object SettingsContacts : Screen
+    @Serializable data object Accounts : Screen
     @Serializable data object SettingsList : Screen
     @Serializable data object SettingsBackup : Screen
     @Serializable data object SettingsLanguage : Screen

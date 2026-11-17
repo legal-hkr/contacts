@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -95,6 +96,7 @@ fun ContactsScreen(
     onOpenSettings: () -> Unit,
     onOpenContact: (ContactRow) -> Unit,
     onNewContact: () -> Unit,
+    onOpenAccounts: () -> Unit,
     onDelete: (Deletion, String) -> Unit,
     snackbars: SnackbarHostState,
     messageScope: CoroutineScope,
@@ -165,7 +167,13 @@ fun ContactsScreen(
             is ListState.AllHidden -> ListEmptyState(
                 stringResource(R.string.msg_all_hidden),
                 stringResource(R.string.desc_all_hidden, NumberFormat.getIntegerInstance(locale).format(current.total)),
-            )
+            ) {
+                FilledTonalButton(onClick = onOpenAccounts) {
+                    Icon(painterResource(R.drawable.ic_tune), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.button_choose_accounts))
+                }
+            }
             is ListState.Ready -> ContactList(current, selection, onOpenContact)
         }
     }

@@ -1,9 +1,13 @@
 package sh.hnet.contacts.ui.settings
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import sh.hnet.contacts.BuildConfig
+import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.ui.components.SettingsGroup
 import sh.hnet.contacts.ui.components.SettingsNavigationRow
@@ -12,14 +16,19 @@ import sh.hnet.contacts.ui.components.SettingsPage
 /**
  * The Settings root (SPEC §13.1), a page over the contact list, as Calendar's: the app's own rows
  * first, then App (language), Data (backup, reset) and About on its own. Rows of features not built
- * yet join with their stages: Accounts, Duplicates, Import, Export.
+ * yet join with their stages: Duplicates, Import, Export.
  */
 @Composable
-fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
+fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenAccounts: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
     val context = LocalContext.current
     val version = BuildConfig.VERSION_NAME.removePrefix("v")
     // Read on every composition: changing it recreates the activity anyway
     val language = appLanguages.firstOrNull { it.tag == currentLanguageTag(context) } ?: appLanguages.first()
+    val app = context.applicationContext as ContactsApplication
+    val hidden by app.preferences.hiddenAccounts.collectAsStateWithLifecycle(emptySet())
+    // "Shown: 3 of 5" (SPEC §13.1): every account with contacts or able to take them, local contacts when there are any
+    val found by produceState<List<String>?>(null) { value = runCatching { app.contacts.accounts().map { it.account.key } }.getOrNull() }
+    val accounts = found?.let { keys -> keys.count { it !in hidden } to keys.size }
     SettingsPage(title = stringResource(R.string.title_settings), onBack = onBack) {
         SettingsGroup {
             row { shapes ->
@@ -27,6 +36,11 @@ fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContact
             }
             row { shapes ->
                 SettingsNavigationRow(shapes, R.drawable.ic_person_add, stringResource(R.string.label_settings_contacts), stringResource(R.string.desc_settings_contacts), onClick = onOpenContacts)
+            }
+        }
+        SettingsGroup {
+            row { shapes ->
+                SettingsNavigationRow(shapes, R.drawable.ic_account_circle, stringResource(R.string.title_accounts), accounts?.let { (shown, all) -> stringResource(R.string.desc_accounts_shown, shown, all) }, onClick = onOpenAccounts)
             }
         }
         SettingsGroup(stringResource(R.string.title_settings_group_app)) {

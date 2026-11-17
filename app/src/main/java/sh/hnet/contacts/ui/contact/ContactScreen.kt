@@ -56,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -81,13 +82,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
+import sh.hnet.contacts.data.AccountInfo
 import sh.hnet.contacts.data.Deletion
+import sh.hnet.contacts.data.Moved
 import sh.hnet.contacts.data.Sharing
 import sh.hnet.contacts.model.ContactDate
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.Detail
 import sh.hnet.contacts.model.DetailKind
 import sh.hnet.contacts.model.Source
+import sh.hnet.contacts.ui.accounts.MoveDialog
 import sh.hnet.contacts.ui.components.Avatar
 import sh.hnet.contacts.ui.components.DestructiveButton
 import sh.hnet.contacts.ui.components.EmptyState
@@ -110,6 +114,7 @@ fun ContactScreen(
     messageScope: CoroutineScope,
     onBack: () -> Unit,
     onEdit: (Long, String) -> Unit,
+    onMoved: (Moved, String, String?) -> Unit,
     onDelete: (Deletion, String) -> Unit,
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
@@ -153,7 +158,7 @@ fun ContactScreen(
             ContactState.Gone -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onBack) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete)
+            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete, onMoved)
         }
     }
     // Edit (SPEC §6.1): a FAB as on the list; none for a contact only in read-only accounts
@@ -180,6 +185,7 @@ private fun ContactContent(
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
     onDelete: (Deletion, String) -> Unit,
+    onMoved: (Moved, String, String?) -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
@@ -265,7 +271,7 @@ private fun ContactContent(
                 }
             }
         }
-        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete) }
+        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete, onMoved) }
         item(key = "sources") { Sources(contact.sources) }
         // Room under the last group for the FAB
         item(key = "end") { Spacer(Modifier.height(88.dp)) }
@@ -447,7 +453,14 @@ private fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String, 
  * contact only in read-only accounts. Move, Join and the QR code join with their stages.
  */
 @Composable
-private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messageScope: CoroutineScope, onDelete: (Deletion, String) -> Unit) {
+private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messageScope: CoroutineScope, onDelete: (Deletion, String) -> Unit, onMoved: (Moved, String, String?) -> Unit) {
+    var moving by remember { mutableStateOf(false) }
+    val app0 = LocalContext.current.applicationContext as ContactsApplication
+    // Where it can go (SPEC §8.4): writable accounts other than the one its entry is in; only for a contact with a local or writable entry
+    val moveTargets by produceState<List<AccountInfo>>(emptyList(), contact.sources) {
+        val from = contact.sources.firstOrNull { !it.readOnly }?.account
+        value = if (from == null) emptyList() else runCatching { app0.contacts.targets() }.getOrDefault(emptyList()).filter { it.account != from && !(it.local && from.let(app0.contacts::isLocal)) }
+    }
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
     val scope = rememberCoroutineScope()
@@ -475,12 +488,23 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
                     }
                 }
             },
-            shapes = groupShapes(0, 1),
+            shapes = groupShapes(0, if (moveTargets.isNotEmpty()) 2 else 1),
             colors = settingsRowColors(),
             leadingContent = { IconBox(R.drawable.ic_share) },
             supportingContent = { Text(stringResource(R.string.desc_share_vcard)) },
         ) {
             Text(stringResource(R.string.menu_share))
+        }
+        if (moveTargets.isNotEmpty()) {
+            SegmentedListItem(
+                onClick = { moving = true },
+                shapes = groupShapes(1, 2),
+                colors = settingsRowColors(),
+                leadingContent = { IconBox(R.drawable.ic_drive_file_move) },
+                modifier = Modifier.padding(top = 2.dp),
+            ) {
+                Text(stringResource(R.string.menu_move_account))
+            }
         }
         if (writable.isNotEmpty()) {
             val supporting = buildList {
@@ -512,6 +536,15 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
             }
         }
     }
+    if (moving) MoveOne(contact, moveTargets, onMoved, onDone = { moving = false })
+}
+
+@Composable
+private fun MoveOne(contact: ContactDetails, targets: List<AccountInfo>, onMoved: (Moved, String, String?) -> Unit, onDone: () -> Unit) {
+    MoveDialog(listOf(contact.id), contact.name, targets, onMoved = { moved, target ->
+        onDone()
+        onMoved(moved, target, contact.name)
+    }, onDismiss = onDone)
 }
 
 @Composable

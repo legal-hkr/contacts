@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Deleting with Undo (SPEC §6.8), as Calendar's: the contacts leave the list, search and favorites
+ * Deleting with Undo (SPEC §6.8), as Calendar's, and a move's deleting of the old entries (§8.4): the contacts leave the list, search and favorites
  * at once, but the storage is told only when the Undo snackbar has gone – or the app has left the
  * screen, which counts as the user's decision too. Until then Undo only shows them again. One
  * delete waits at a time: the next one carries out the one before.
@@ -34,6 +34,14 @@ class DeleteQueue(private val scope: CoroutineScope, private val writer: Contact
         val deletion = _waiting.value ?: return
         _waiting.value = null
         _hidden.update { it - deletion.contacts }
+        // A move's Undo: the copies go, the originals were never touched
+        if (deletion.undoRawContactIds.isNotEmpty()) scope.launch {
+            try {
+                writer.delete(deletion.undoRawContactIds)
+            } catch (_: Exception) {
+                // The copies stay joined with the originals: one contact with two entries, nothing lost
+            }
+        }
     }
 
     /** Carries the waiting delete out. Safe to call when nothing waits. */

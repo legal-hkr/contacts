@@ -137,6 +137,24 @@
     <string name="msg_exported">Contacts saved: %1$s (%2$s)</string>
     <string name="error_export_failed">The file couldn’t be saved (%1$s).</string>
 
+    <!-- Accounts and moving -->
+    <string name="desc_accounts_shown">Shown: %1$d of %2$d</string>
+    <string name="button_choose_accounts">Choose accounts</string>
+    <string name="msg_account_hidden">The account is hidden in the list (%1$s).</string>
+    <string name="menu_move_to_account">Move to an account</string>
+    <string name="desc_move_to_account">Copies the contacts to an account and deletes them from the phone</string>
+    <string name="msg_local_only_copy">Contacts on this phone aren’t synced anywhere. The only copy outside the phone is an export to a vCard file.</string>
+    <string name="menu_move_account">Move to another account</string>
+    <string name="title_move_contacts">Move contacts (%1$d)?</string>
+    <string name="title_move_contact">Move contact (%1$s)?</string>
+    <string name="msg_move_contacts">Each contact will be copied to the chosen account and deleted from the phone. It reaches the server with the next sync.</string>
+    <string name="msg_move_contact">The contact will be copied to the chosen account and deleted from the current one. It reaches the server with the next sync.</string>
+    <string name="button_move">Move</string>
+    <string name="label_moving">Moving…</string>
+    <string name="msg_contacts_moved">Contacts moved: %1$d (%2$s)</string>
+    <string name="msg_contact_moved">Contact moved: %1$s (%2$s)</string>
+    <string name="error_move_failed">Contacts couldn’t be moved (moved: %1$d).</string>
+
     <!-- Search -->
     <string name="content_description_search">Search</string>
     <string name="hint_search">Search contacts</string>

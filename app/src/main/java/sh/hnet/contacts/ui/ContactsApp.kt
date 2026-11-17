@@ -51,6 +51,8 @@ import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.data.Deletion
+import sh.hnet.contacts.data.Moved
+import sh.hnet.contacts.ui.accounts.AccountsScreen
 import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
@@ -132,6 +134,29 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
         }
     }
 
+    val movedOne = stringResource(R.string.msg_contact_moved)
+    val movedMany = stringResource(R.string.msg_contacts_moved)
+    val moveFailed = stringResource(R.string.error_move_failed)
+    /**
+     * A move done as far as copying (SPEC §8.4): the snackbar with Undo; the old entries go when it
+     * has gone, Undo deletes the copies. [name] for one contact, null for several.
+     */
+    val movedWithUndo: (Moved, String, String?) -> Unit = { moved, target, name ->
+        if (moved.newRawContactIds.isEmpty()) {
+            messages.launch { snackbars.showSnackbar(moveFailed.format(0), duration = SnackbarDuration.Short) }
+        } else {
+            val message = when {
+                moved.failed > 0 -> moveFailed.format(moved.newRawContactIds.size)
+                name != null -> movedOne.format(name, target)
+                else -> movedMany.format(moved.newRawContactIds.size, target)
+            }
+            deleteWithUndo(Deletion(emptySet(), moved.oldRawContactIds, 0, moved.newRawContactIds), message)
+        }
+    }
+    val accountHidden = stringResource(R.string.msg_account_hidden)
+    val thisPhone = stringResource(R.string.label_this_phone)
+    val show = stringResource(R.string.button_show)
+
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     val open: (Screen) -> Unit = { stack.add(it) }
 
@@ -162,6 +187,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onOpenSettings = { open(Screen.Settings) },
                             onOpenContact = { open(Screen.Contact(it.lookupKey, it.id, it.name, it.photo)) },
                             onNewContact = { open(Screen.Editor(null, 0, System.nanoTime())) },
+                            onOpenAccounts = { open(Screen.Accounts) },
                             onDelete = deleteWithUndo,
                             snackbars = snackbars,
                             messageScope = messages,
@@ -184,6 +210,16 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                                     back()
                                     // A new contact's page opens; an edited one's page was under the editor already
                                     if (editor.lookupKey == null) open(Screen.Contact(saved.lookupKey, saved.contactId))
+                                    // Saved into an account the list hides (SPEC §4.8): say so, with Show
+                                    saved.account?.let { account ->
+                                        messages.launch {
+                                            if (account.key !in app.preferences.hiddenAccounts.first()) return@launch
+                                            val label = account.name.ifEmpty { thisPhone }
+                                            if (snackbars.showSnackbar(accountHidden.format(label), actionLabel = show, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
+                                                app.preferences.setAccountShown(account.key, true)
+                                            }
+                                        }
+                                    }
                                 }
                             },
                         )
@@ -193,6 +229,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             contact.lookupKey, contact.id, contact.name, contact.photo, snackbars, messages,
                             onBack = back,
                             onEdit = { id, key -> open(Screen.Editor(key, id, System.nanoTime())) },
+                            onMoved = movedWithUndo,
                             onDelete = { deletion, message ->
                                 // The page closes, back to where it came from, and the contact leaves the list at once
                                 back()
@@ -210,6 +247,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onBack = back,
                             onOpenList = { open(Screen.SettingsList) },
                             onOpenContacts = { open(Screen.SettingsContacts) },
+                            onOpenAccounts = { open(Screen.Accounts) },
                             onOpenLanguage = { open(Screen.SettingsLanguage) },
                             onOpenBackup = { open(Screen.SettingsBackup) },
                             onOpenReset = { open(Screen.SettingsReset) },
@@ -218,6 +256,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                     }
                     entry<Screen.SettingsList> { ListSettingsScreen(onBack = back) }
                     entry<Screen.SettingsContacts> { ContactsSettingsScreen(onBack = back) }
+                    entry<Screen.Accounts> { AccountsScreen(onBack = back, onMoved = { moved, target -> movedWithUndo(moved, target, null) }) }
                     entry<Screen.SettingsLanguage> { LanguageScreen(onBack = back) }
                     entry<Screen.SettingsBackup> { BackupScreen(onBack = back, snackbars = snackbars, messageScope = messages) }
                     entry<Screen.SettingsReset> { ResetScreen(onBack = back) }

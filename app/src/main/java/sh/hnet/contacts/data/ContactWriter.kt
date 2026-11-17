@@ -2,11 +2,14 @@ package sh.hnet.contacts.data
 
 import android.content.ContentProviderOperation
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.net.Uri
 import android.provider.ContactsContract
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Event
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Organization
@@ -38,10 +41,15 @@ data class EditSnapshot(val contactId: Long, val lookupKey: String, val entries:
 }
 
 /**
- * What a delete takes away: the [contacts] that have writable entries, the [rawContactIds] of those
- * entries, and how many of the asked contacts are only in read-only accounts and stay ([skipped]).
+ * A change that waits for its Undo snackbar to go (SPEC §6.8, §8.4). A delete: the [contacts] that
+ * have writable entries leave the views, their [rawContactIds] are deleted on commit, [skipped]
+ * contacts only in read-only accounts stay. A move: nothing leaves the views, the old entries
+ * ([rawContactIds]) are deleted on commit, and Undo deletes the copies ([undoRawContactIds]).
  */
-data class Deletion(val contacts: Set<Long>, val rawContactIds: List<Long>, val skipped: Int)
+data class Deletion(val contacts: Set<Long>, val rawContactIds: List<Long>, val skipped: Int, val undoRawContactIds: List<Long> = emptyList())
+
+/** A move done as far as copying: the old entries to delete and the copies made, for Undo; [failed] contacts couldn't be copied. */
+data class Moved(val oldRawContactIds: List<Long>, val newRawContactIds: List<Long>, val failed: Int)
 
 /** What the editor does with the photo on Save. */
 sealed interface PhotoChange {
@@ -53,7 +61,7 @@ sealed interface PhotoChange {
 }
 
 /** A saved contact, to open its page; [photoFailed] when the contact was saved but its photo couldn't be written. */
-data class Saved(val contactId: Long, val lookupKey: String, val photoFailed: Boolean = false)
+data class Saved(val contactId: Long, val lookupKey: String, val photoFailed: Boolean = false, val account: AccountKey? = null)
 
 /** The storage's columns of each kind and the type and label columns of those that have them. */
 private object Columns {
@@ -288,7 +296,7 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             } catch (_: Exception) {
                 null
             }
-            (found ?: snapshot?.let { Saved(it.contactId, it.lookupKey) } ?: Saved(0, "")).copy(photoFailed = photoFailed)
+            (found ?: snapshot?.let { Saved(it.contactId, it.lookupKey) } ?: Saved(0, "")).copy(photoFailed = photoFailed, account = if (snapshot == null) account else null)
         } catch (_: Exception) {
             // OperationApplicationException, RemoteException, SecurityException: the batch didn't happen, nothing was saved
             null
@@ -318,6 +326,124 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             }
         }
         Deletion(writable.keys.toSet(), writable.values.flatten(), (all - writable.keys).size)
+    }
+
+    /**
+     * Copies the contacts [ids] to the account [target] (SPEC §8.4, logic agreed with the owner,
+     * 17 Nov 2026): for each, the first entry that is local or writable and not in [target] gets a
+     * new entry in [target] with every data row (group memberships aside, which belong to the old
+     * account) and its star; the photo is written anew in its full size. The new entry is joined
+     * with every other entry of the contact, the old one included, so the contact stays one. The
+     * old entries are deleted later, when Undo is no longer offered. [onProgress] gets the count done.
+     */
+    suspend fun move(ids: List<Long>, target: AccountKey, onProgress: (Int) -> Unit = {}): Moved = withContext(Dispatchers.IO) {
+        val adapters = source.contactsAdapters()
+        val old = ArrayList<Long>()
+        val new = ArrayList<Long>()
+        var failed = 0
+        ids.forEachIndexed { index, contactId ->
+            try {
+                val entries = ArrayList<Triple<Long, AccountKey, Int>>()
+                resolver.query(
+                    ContactsContract.RawContacts.CONTENT_URI,
+                    arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME, ContactsContract.RawContacts.STARRED),
+                    "${ContactsContract.RawContacts.CONTACT_ID} = ? AND ${ContactsContract.RawContacts.DELETED} = 0", arrayOf(contactId.toString()), ContactsContract.RawContacts._ID,
+                )?.use { cursor -> while (cursor.moveToNext()) entries += Triple(cursor.getLong(0), AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty()), cursor.getInt(3)) }
+                val from = entries.firstOrNull { (_, account, _) -> account != target && (source.isLocal(account) || adapters[account.type] == true) }
+                if (from == null) {
+                    failed++
+                    return@forEachIndexed
+                }
+                val copy = copyEntry(from.first, target, from.third)
+                for ((raw, _, _) in entries) keepTogether(copy, raw)
+                old += from.first
+                new += copy
+            } catch (_: Exception) {
+                failed++
+            }
+            onProgress(index + 1)
+        }
+        Moved(old, new, failed)
+    }
+
+    /** A new entry in [target] with every data row of [rawContactId] but group memberships, and its photo; the new entry's id. */
+    private fun copyEntry(rawContactId: Long, target: AccountKey, starred: Int): Long {
+        val operations = ArrayList<ContentProviderOperation>()
+        operations += ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
+            .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, target.type.ifEmpty { null })
+            .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, target.name.ifEmpty { null })
+            .withValue(ContactsContract.RawContacts.STARRED, starred)
+            .build()
+        val columns = arrayOf(ContactsContract.Data.MIMETYPE, ContactsContract.Data.IS_PRIMARY, ContactsContract.Data.IS_SUPER_PRIMARY) + (1..15).map { "data$it" }
+        var thumbnail: ByteArray? = null
+        resolver.query(ContactsContract.Data.CONTENT_URI, columns, "${ContactsContract.Data.RAW_CONTACT_ID} = ?", arrayOf(rawContactId.toString()), ContactsContract.Data._ID)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val mime = cursor.getString(0)
+                if (mime == GroupMembership.CONTENT_ITEM_TYPE) continue
+                // The photo goes through the display photo below; its small copy only when there is no large one
+                if (mime == Photo.CONTENT_ITEM_TYPE) {
+                    thumbnail = cursor.getBlob(cursor.getColumnIndexOrThrow(Photo.PHOTO))
+                    continue
+                }
+                val builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                    .withValue(ContactsContract.Data.MIMETYPE, mime)
+                    .withValue(ContactsContract.Data.IS_PRIMARY, cursor.getInt(1))
+                    .withValue(ContactsContract.Data.IS_SUPER_PRIMARY, cursor.getInt(2))
+                for (i in 3 until columns.size) {
+                    when (cursor.getType(i)) {
+                        Cursor.FIELD_TYPE_NULL -> Unit
+                        Cursor.FIELD_TYPE_BLOB -> builder.withValue(columns[i], cursor.getBlob(i))
+                        Cursor.FIELD_TYPE_INTEGER -> builder.withValue(columns[i], cursor.getLong(i))
+                        Cursor.FIELD_TYPE_FLOAT -> builder.withValue(columns[i], cursor.getDouble(i))
+                        else -> builder.withValue(columns[i], cursor.getString(i))
+                    }
+                }
+                operations += builder.build()
+            }
+        }
+        val results = resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+        val copy = ContentUris.parseId(results[0].uri!!)
+        val large = try {
+            resolver.openAssetFileDescriptor(displayPhoto(rawContactId), "r")?.use { it.createInputStream().use { input -> input.readBytes() } }
+        } catch (_: Exception) {
+            null
+        }
+        when {
+            large != null -> resolver.openAssetFileDescriptor(displayPhoto(copy), "rw")?.use { it.createOutputStream().use { output -> output.write(large) } }
+            thumbnail != null -> resolver.insert(ContactsContract.Data.CONTENT_URI, ContentValues().apply {
+                put(ContactsContract.Data.RAW_CONTACT_ID, copy)
+                put(ContactsContract.Data.MIMETYPE, Photo.CONTENT_ITEM_TYPE)
+                put(Photo.PHOTO, thumbnail)
+            })
+        }
+        return copy
+    }
+
+    private fun displayPhoto(rawContactId: Long): Uri =
+        Uri.withAppendedPath(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId), ContactsContract.RawContacts.DisplayPhoto.CONTENT_DIRECTORY)
+
+    /** Tells the storage two entries are one person (SPEC §8.4): it joins them and keeps them joined. */
+    private fun keepTogether(a: Long, b: Long) {
+        if (a == b) return
+        resolver.update(ContactsContract.AggregationExceptions.CONTENT_URI, ContentValues().apply {
+            put(ContactsContract.AggregationExceptions.TYPE, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER)
+            put(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, a)
+            put(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, b)
+        }, null, null)
+    }
+
+    /** The contacts with an entry among local contacts (SPEC §8.4: "Move to an account" for all of them). */
+    suspend fun localContacts(): List<Long> = withContext(Dispatchers.IO) {
+        val result = LinkedHashSet<Long>()
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME),
+            "${ContactsContract.RawContacts.DELETED} = 0", null, null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) if (source.isLocal(AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty()))) result += cursor.getLong(0)
+        }
+        result.toList()
     }
 
     /** Deletes the entries [rawContactIds] the way any app does, so the accounts' apps send the deletion to their servers. */
