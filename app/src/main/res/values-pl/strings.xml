@@ -27,6 +27,23 @@
     <string name="tooltip_star">Dodaj do ulubionych</string>
     <string name="tooltip_unstar">Usuń z ulubionych</string>
 
+    <!-- Search -->
+    <string name="content_description_search">Szukaj</string>
+    <string name="hint_search">Szukaj kontaktów</string>
+    <string name="content_description_clear">Wyczyść</string>
+    <string name="label_search_names">Nazwy</string>
+    <string name="label_search_other_fields">Inne pola</string>
+    <string name="label_match_nickname">Pseudonim: %1$s</string>
+    <string name="label_match_phonetic">Fonetycznie: %1$s</string>
+    <string name="label_match_email">E-mail: %1$s</string>
+    <string name="label_match_company">Firma: %1$s</string>
+    <string name="label_match_note">Notatka: %1$s</string>
+    <string name="label_match_phone">%1$s: %2$s</string>
+    <string name="msg_no_results">Brak wyników (%1$s).</string>
+    <string name="desc_search_scope">Wyszukiwanie obejmuje imiona i nazwiska, numery, e-maile, firmy i notatki na pokazywanych kontach.</string>
+    <string name="desc_hidden_not_searched">Ukryte konta nie są przeszukiwane.</string>
+    <string name="button_search_all">Szukaj we wszystkich</string>
+
     <!-- Contact page -->
     <string name="tooltip_call">Zadzwoń</string>
     <string name="tooltip_message">Wiadomość</string>

@@ -104,6 +104,7 @@ fun ContactScreen(
     messageScope: CoroutineScope,
     onBack: () -> Unit,
     onOpenContact: (Long, String) -> Unit,
+    onSearch: (String) -> Unit,
 ) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     val viewModel: ContactViewModel = viewModel(key = "contact:$lookupKey") { ContactViewModel(app, lookupKey, id) }
@@ -142,7 +143,7 @@ fun ContactScreen(
             ContactState.Gone -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onBack) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            is ContactState.Ready -> ContactContent(current.contact, listState, viewModel, snackbars, messageScope, onOpenContact)
+            is ContactState.Ready -> ContactContent(current.contact, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch)
         }
     }
 }
@@ -155,6 +156,7 @@ private fun ContactContent(
     snackbars: SnackbarHostState,
     messageScope: CoroutineScope,
     onOpenContact: (Long, String) -> Unit,
+    onSearch: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
@@ -228,8 +230,11 @@ private fun ContactContent(
                         DetailKind.DATE -> dayMillis(detail.value)?.let { millis ->
                             open(context, Intent(Intent.ACTION_VIEW, "content://com.android.calendar/time/$millis".toUri())) {}
                         }
-                        // Exactly one contact of that name opens; anything else is search's to find, which comes in its stage
-                        DetailKind.RELATION -> scope.launch { viewModel.onlyContactNamed(detail.value)?.let { (id, key) -> onOpenContact(id, key) } }
+                        // Exactly one contact of that name opens; otherwise the list searches for the name
+                        DetailKind.RELATION -> scope.launch {
+                            val only = viewModel.onlyContactNamed(detail.value)
+                            if (only != null) onOpenContact(only.first, only.second) else onSearch(detail.value)
+                        }
                         DetailKind.IM -> copy(detail.value)
                         DetailKind.SIP -> open(context, Intent(Intent.ACTION_DIAL, Uri.fromParts("sip", detail.value, null))) { reportNoApp(call) }
                         DetailKind.NOTE -> Unit

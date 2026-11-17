@@ -39,6 +39,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.ui.components.ContactsAccess
@@ -112,7 +113,15 @@ fun ContactsApp() {
                 entryProvider = entryProvider<NavKey> {
                     entry<Screen.Contacts> { ContactsScreen(onOpenSettings = { open(Screen.Settings) }, onOpenContact = { open(Screen.Contact(it.lookupKey, it.id)) }) }
                     entry<Screen.Contact> { contact ->
-                        ContactScreen(contact.lookupKey, contact.id, snackbars, messages, onBack = back, onOpenContact = { id, key -> open(Screen.Contact(key, id)) })
+                        ContactScreen(
+                            contact.lookupKey, contact.id, snackbars, messages,
+                            onBack = back,
+                            onOpenContact = { id, key -> open(Screen.Contact(key, id)) },
+                            onSearch = { name ->
+                                (appContext as ContactsApplication).pendingSearch.value = name
+                                while (stack.size > 1) stack.removeAt(stack.lastIndex)
+                            },
+                        )
                     }
                     entry<Screen.Settings> {
                         SettingsRootScreen(

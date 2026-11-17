@@ -36,6 +36,9 @@ import sh.hnet.contacts.model.Detail
 import sh.hnet.contacts.model.DetailKind
 import sh.hnet.contacts.model.Details
 import sh.hnet.contacts.model.ListSettings
+import sh.hnet.contacts.model.MatchKind
+import sh.hnet.contacts.model.SearchContact
+import sh.hnet.contacts.model.SearchField
 import sh.hnet.contacts.model.Source
 
 /**
@@ -152,6 +155,12 @@ class ContactSource(private val context: Context) {
      * names and second line [settings] ask for. Unsorted: the list sorts in the app's language.
      */
     suspend fun contacts(settings: ListSettings, hidden: Set<String>): LoadedContacts = withContext(Dispatchers.IO) {
+        val all = rows(settings, hidden)
+        LoadedContacts(all.filter { it.second }.map { it.first }, all.size)
+    }
+
+    /** Every contact as a list row, and whether it has an entry in an account not in [hidden]. */
+    private fun rows(settings: ListSettings, hidden: Set<String>): List<Pair<ContactRow, Boolean>> {
         val shown = HashSet<Long>()
         resolver.query(
             ContactsContract.RawContacts.CONTENT_URI,
@@ -164,8 +173,7 @@ class ContactSource(private val context: Context) {
         }
         val companies = if (settings.companyLine) companies() else emptyMap()
         val shortNames = shortNames()
-        val rows = ArrayList<ContactRow>()
-        var total = 0
+        val rows = ArrayList<Pair<ContactRow, Boolean>>()
         resolver.query(
             ContactsContract.Contacts.CONTENT_URI,
             arrayOf(
@@ -179,9 +187,7 @@ class ContactSource(private val context: Context) {
             null, null, null,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
-                total++
                 val id = cursor.getLong(0)
-                if (id !in shown) continue
                 val primary = cursor.getString(2).orEmpty()
                 val alternative = cursor.getString(3)?.takeIf { it.isNotBlank() } ?: primary
                 rows += ContactRow(
@@ -193,10 +199,59 @@ class ContactSource(private val context: Context) {
                     starred = cursor.getInt(5) != 0,
                     company = companies[id],
                     shortName = shortNames[id],
-                )
+                ) to (id in shown)
             }
         }
-        LoadedContacts(rows, total)
+        return rows
+    }
+
+    /**
+     * Every contact with what search looks in (SPEC §5.2): the parts of the name, nickname, phonetic
+     * name, numbers with their types, e-mails, company and title, notes. Hidden accounts' contacts are
+     * in it too, marked, for "Search all". Kept in memory only while the search is open.
+     */
+    suspend fun searchIndex(settings: ListSettings, hidden: Set<String>): List<SearchContact> = withContext(Dispatchers.IO) {
+        val fields = HashMap<Long, MutableList<SearchField>>()
+        resolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            arrayOf(
+                ContactsContract.Data.CONTACT_ID, ContactsContract.Data.MIMETYPE,
+                ContactsContract.Data.DATA1, ContactsContract.Data.DATA2, ContactsContract.Data.DATA3, ContactsContract.Data.DATA4,
+                ContactsContract.Data.DATA5, ContactsContract.Data.DATA7, ContactsContract.Data.DATA8, ContactsContract.Data.DATA9,
+            ),
+            "${ContactsContract.Data.MIMETYPE} IN (?, ?, ?, ?, ?, ?)",
+            arrayOf(StructuredName.CONTENT_ITEM_TYPE, Nickname.CONTENT_ITEM_TYPE, Phone.CONTENT_ITEM_TYPE, Email.CONTENT_ITEM_TYPE, Organization.CONTENT_ITEM_TYPE, Note.CONTENT_ITEM_TYPE),
+            null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val list = fields.getOrPut(cursor.getLong(0)) { ArrayList() }
+                fun text(column: Int) = cursor.getString(column)?.trim()?.takeIf { it.isNotEmpty() }
+                fun add(kind: MatchKind, column: Int) = text(column)?.let { list += SearchField(kind, it) }
+                when (cursor.getString(1)) {
+                    StructuredName.CONTENT_ITEM_TYPE -> {
+                        // Given, family, middle; then the phonetic given, middle, family
+                        for (column in intArrayOf(3, 4, 6)) add(MatchKind.NAME, column)
+                        listOfNotNull(text(7), text(8), text(9)).joinToString(" ").takeIf { it.isNotEmpty() }?.let { list += SearchField(MatchKind.PHONETIC, it) }
+                    }
+                    Nickname.CONTENT_ITEM_TYPE -> add(MatchKind.NICKNAME, 2)
+                    Phone.CONTENT_ITEM_TYPE -> text(2)?.let { list += SearchField(MatchKind.PHONE, it, if (cursor.isNull(3)) 0 else cursor.getInt(3), text(4)) }
+                    Email.CONTENT_ITEM_TYPE -> add(MatchKind.EMAIL, 2)
+                    Organization.CONTENT_ITEM_TYPE -> {
+                        add(MatchKind.COMPANY, 2)
+                        add(MatchKind.COMPANY, 5)
+                    }
+                    Note.CONTENT_ITEM_TYPE -> add(MatchKind.NOTE, 2)
+                }
+            }
+        }
+        rows(settings, hidden).map { (row, shown) -> SearchContact(row, shown, fields[row.id].orEmpty()) }
+    }
+
+    /** The country calling code of the phone's region ("48"), for numbers typed with or without it (SPEC §5.2); null when unknown. */
+    fun countryCode(region: String = region()): String? {
+        val national = "600000000"
+        val international = PhoneNumberUtils.formatNumberToE164(national, region) ?: return null
+        return international.removePrefix("+").removeSuffix(national.trimStart('0')).takeIf { it.isNotEmpty() && it.all(Char::isDigit) && it.length <= 3 }
     }
 
     /** The favorites row's label per starred contact (SPEC §4.3): the nickname, else the given name. */

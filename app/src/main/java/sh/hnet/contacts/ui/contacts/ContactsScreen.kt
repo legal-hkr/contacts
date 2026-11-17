@@ -2,6 +2,7 @@
 
 package sh.hnet.contacts.ui.contacts
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,8 +64,9 @@ import sh.hnet.contacts.ui.components.TooltipIconButton
 import sh.hnet.contacts.ui.components.rememberContactsAccessAsk
 
 /**
- * The app's root (SPEC §4): the top bar with Settings, then favorites and the contact list with
- * letter headers and the fast scroller, or one of its states. Search and the FAB come with later stages.
+ * The app's root (SPEC §4): the top bar with Search and Settings, then favorites and the contact
+ * list with letter headers and the fast scroller, or one of its states; with the search open, its
+ * field in the bar and its results in place of the list (SPEC §5). The FAB comes with the editor.
  */
 @Composable
 fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Unit, viewModel: ListViewModel = viewModel()) {
@@ -75,11 +77,29 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
         viewModel.refreshAccess()
         onPauseOrDispose {}
     }
+    val searching by viewModel.searching.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
+    val search by viewModel.search.collectAsStateWithLifecycle()
+    // Back closes the search first (SPEC §3.3)
+    BackHandler(enabled = searching) { viewModel.closeSearch() }
+    // Search only where there is something to search: not without access or contacts (SPEC §4.8)
+    val searchable = state !is ListState.NoAccess && state !is ListState.NoContacts
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(stringResource(R.string.title_contacts), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() }) },
-            actions = { TooltipIconButton(R.drawable.ic_settings, stringResource(R.string.content_description_settings), onOpenSettings) },
-        )
+        if (searching) {
+            SearchField(viewModel.searchField, query, onClose = viewModel::closeSearch, onClear = viewModel::clearQuery)
+        } else {
+            TopAppBar(
+                title = { Text(stringResource(R.string.title_contacts), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() }) },
+                actions = {
+                    if (searchable) TooltipIconButton(R.drawable.ic_search, stringResource(R.string.content_description_search), { viewModel.openSearch() })
+                    TooltipIconButton(R.drawable.ic_settings, stringResource(R.string.content_description_settings), onOpenSettings)
+                },
+            )
+        }
+        if (searching && searchable) {
+            search?.let { SearchResults(it, onOpenContact, onSearchAll = viewModel::searchAll) }
+            return@Column
+        }
         when (val current = state) {
             ListState.Loading -> Loading()
             ListState.NoAccess -> NoAccess(onAnswer = viewModel::refreshAccess)

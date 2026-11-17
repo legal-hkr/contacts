@@ -27,6 +27,23 @@
     <string name="tooltip_star">Add to favorites</string>
     <string name="tooltip_unstar">Remove from favorites</string>
 
+    <!-- Search -->
+    <string name="content_description_search">Search</string>
+    <string name="hint_search">Search contacts</string>
+    <string name="content_description_clear">Clear</string>
+    <string name="label_search_names">Names</string>
+    <string name="label_search_other_fields">Other fields</string>
+    <string name="label_match_nickname">Nickname: %1$s</string>
+    <string name="label_match_phonetic">Phonetic: %1$s</string>
+    <string name="label_match_email">Email: %1$s</string>
+    <string name="label_match_company">Company: %1$s</string>
+    <string name="label_match_note">Note: %1$s</string>
+    <string name="label_match_phone">%1$s: %2$s</string>
+    <string name="msg_no_results">No results (%1$s).</string>
+    <string name="desc_search_scope">Search covers names, numbers, emails, companies and notes in the shown accounts.</string>
+    <string name="desc_hidden_not_searched">Hidden accounts aren’t searched.</string>
+    <string name="button_search_all">Search all</string>
+
     <!-- Contact page -->
     <string name="tooltip_call">Call</string>
     <string name="tooltip_message">Message</string>
