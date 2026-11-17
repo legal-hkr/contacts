@@ -40,6 +40,9 @@ data class BackupSettings(
     /** "first_last" or "last_first". */
     val nameOrder: String? = null,
     val companyLine: Boolean? = null,
+    /** The account new contacts are saved to, as the storage names it; empty type and name for local contacts. */
+    val defaultAccountType: String? = null,
+    val defaultAccountName: String? = null,
 )
 
 /** Whether an account's contacts are shown in the list; [type] and [name] as the storage names the account, empty for local contacts. */

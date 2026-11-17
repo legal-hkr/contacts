@@ -81,7 +81,7 @@ class ContactSource(private val context: Context) {
         context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED &&
             context.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED
 
-    /** Emits once at once, then whenever the storage changes (a sync, another app). Collect only with access. */
+    /** Emits whenever the storage changes (a sync, another app, the app itself); not at once – readers start with `onStart`. Collect only with access. */
     val changes: Flow<Unit> = callbackFlow {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
@@ -89,7 +89,6 @@ class ContactSource(private val context: Context) {
             }
         }
         resolver.registerContentObserver(ContactsContract.AUTHORITY_URI, true, observer)
-        trySend(Unit)
         awaitClose { resolver.unregisterContentObserver(observer) }
     }
 
@@ -100,6 +99,21 @@ class ContactSource(private val context: Context) {
         if (type == null && name == null) null else AccountKey(type.orEmpty(), name.orEmpty())
     }
 
+    /** Where a new local contact goes (SPEC §8.3): the platform's local account if the phone has one, else no account. */
+    fun localTarget(): AccountKey = localAccount ?: AccountKey("", "")
+
+    /**
+     * The accounts a new contact can be saved to (SPEC §7.2): the writable synced ones, then "On this
+     * phone", which always exists, whether local contacts do yet or not.
+     */
+    suspend fun targets(): List<AccountInfo> = withContext(Dispatchers.IO) {
+        // Without counting contacts: the editor opens at once
+        syncedAccounts(uploading = true).map { info(it, 0) }.sortedBy { it.account.name.lowercase() } + info(localTarget(), 0)
+    }
+
+    /** The default account's key if it is still a target, else the first target (SPEC §12.3, §13.3). */
+    fun resolveDefault(targets: List<AccountInfo>, chosen: String?): AccountInfo = targets.firstOrNull { it.account.key == chosen } ?: targets.first()
+
     fun isLocal(account: AccountKey): Boolean = (account.type.isEmpty() && account.name.isEmpty()) || account == localAccount
 
     /**
@@ -107,6 +121,48 @@ class ContactSource(private val context: Context) {
      * storage, plus the accounts of apps that sync contacts and have none yet. Local contacts are
      * listed when they exist. Writable ones first, then by name.
      */
+    /** The app an account type belongs to: its label, package and icon. */
+    private class AccountApp(val label: String?, val pkg: String, val iconId: Int)
+
+    /**
+     * Account types' apps and the sync adapters, read once per process: asking the system for them
+     * (and an app's label through its resources) on every page made opening a contact slow.
+     * Accounts of an app installed later show its type until the process restarts.
+     */
+    private val apps: Map<String, AccountApp> by lazy {
+        AccountManager.get(context).authenticatorTypes.associate { it.type to AccountApp(label(it.packageName, it.labelId), it.packageName, it.iconId) }
+    }
+    private val adapters: Map<String, Boolean> by lazy {
+        ContentResolver.getSyncAdapterTypes().filter { it.authority == ContactsContract.AUTHORITY }.associate { it.accountType to it.supportsUploading() }
+    }
+
+    /**
+     * Reads once what every page needs and the system answers slowly – the account apps' labels, the
+     * sync adapters, the local account –, so the first contact page opens as fast as the next ones.
+     * Called off the main thread when the app starts.
+     */
+    fun warmUp() {
+        apps.size
+        adapters.size
+        localAccount
+    }
+
+    /** The label of the app an account type belongs to ("DAVx⁵"); null when the system doesn't say. */
+    fun appLabel(type: String): String? = apps[type]?.label
+
+    private fun info(account: AccountKey, count: Int): AccountInfo {
+        val local = isLocal(account)
+        val app = apps[account.type]
+        return AccountInfo(account, local, if (local) null else app?.label, app?.pkg, app?.iconId ?: 0, local || adapters[account.type] == true, count)
+    }
+
+    /**
+     * Accounts of apps that sync contacts, visible to an app holding the contacts permission, even
+     * without contacts yet; with [uploading] only those that send changes to a server (new contacts can go there).
+     */
+    private fun syncedAccounts(uploading: Boolean): List<AccountKey> =
+        AccountManager.get(context).accounts.filter { if (uploading) adapters[it.type] == true else it.type in adapters }.map { AccountKey(it.type, it.name) }
+
     suspend fun accounts(): List<AccountInfo> = withContext(Dispatchers.IO) {
         val counts = HashMap<AccountKey, MutableSet<Long>>()
         resolver.query(
@@ -119,29 +175,11 @@ class ContactSource(private val context: Context) {
                 counts.getOrPut(account) { HashSet() }.add(cursor.getLong(0))
             }
         }
-        val uploads = contactsAdapters()
-        val manager = AccountManager.get(context)
-        val authenticators = manager.authenticatorTypes.associateBy { it.type }
-        // Accounts of apps that sync contacts, visible to an app holding the contacts permission, even without contacts yet
-        val synced = manager.accounts.filter { it.type in uploads }.map { AccountKey(it.type, it.name) }
-        (counts.keys + synced).distinct().map { account ->
-            val local = isLocal(account)
-            val authenticator = authenticators[account.type]
-            AccountInfo(
-                account = account,
-                local = local,
-                app = if (local) null else authenticator?.let { label(it.packageName, it.labelId) },
-                appPackage = authenticator?.packageName,
-                iconId = authenticator?.iconId ?: 0,
-                writable = local || uploads[account.type] == true,
-                count = counts[account]?.size ?: 0,
-            )
-        }.sortedWith(compareBy<AccountInfo> { it.local }.thenBy { !it.writable }.thenBy { it.account.name.lowercase() })
+        (counts.keys + syncedAccounts(uploading = false)).distinct().map { account -> info(account, counts[account]?.size ?: 0) }.sortedWith(compareBy<AccountInfo> { it.local }.thenBy { !it.writable }.thenBy { it.account.name.lowercase() })
     }
 
     /** Account types with a contacts sync adapter, and whether it sends changes to its server (read-only accounts don't, SPEC §6.5). */
-    private fun contactsAdapters(): Map<String, Boolean> =
-        ContentResolver.getSyncAdapterTypes().filter { it.authority == ContactsContract.AUTHORITY }.associate { it.accountType to it.supportsUploading() }
+    fun contactsAdapters(): Map<String, Boolean> = adapters
 
     private fun label(packageName: String, labelId: Int): String? = try {
         if (labelId != 0) context.packageManager.getResourcesForApplication(packageName).getString(labelId)
@@ -183,6 +221,8 @@ class ContactSource(private val context: Context) {
                 ContactsContract.Contacts.DISPLAY_NAME_ALTERNATIVE,
                 ContactsContract.Contacts.PHOTO_THUMBNAIL_URI,
                 ContactsContract.Contacts.STARRED,
+                ContactsContract.Contacts.PHOTO_FILE_ID,
+                ContactsContract.Contacts.PHOTO_ID,
             ),
             null, null, null,
         )?.use { cursor ->
@@ -195,7 +235,7 @@ class ContactSource(private val context: Context) {
                     lookupKey = cursor.getString(1).orEmpty(),
                     name = if (settings.lastFirst) alternative else primary,
                     sortName = if (settings.sortByLast) alternative else primary,
-                    photo = cursor.getString(4),
+                    photo = photoAddress(cursor.getString(4), cursor.getString(6), cursor.getString(7)),
                     starred = cursor.getInt(5) != 0,
                     company = companies[id],
                     shortName = shortNames[id],
@@ -291,6 +331,14 @@ class ContactSource(private val context: Context) {
         return result
     }
 
+    /**
+     * A photo's address with what tells this photo from the next: the storage keeps the same address
+     * when a contact's photo is replaced, so a remembered thumbnail would stay (the owner saw the old
+     * one in the list after cropping again). The file's and the row's ids go into the fragment, which
+     * the storage ignores; [sh.hnet.contacts.ui.components.Avatar] reads the address without it.
+     */
+    fun photoAddress(uri: String?, fileId: String?, photoId: String?): String? = uri?.let { "$it#${fileId.orEmpty()}.${photoId.orEmpty()}" }
+
     /** The phone's region for numbers without a country code (SPEC §7.8): the network's country, else the app's language's. */
     fun region(): String {
         val network = context.getSystemService(TelephonyManager::class.java)?.networkCountryIso.orEmpty()
@@ -317,19 +365,17 @@ class ContactSource(private val context: Context) {
         var key = lookupKey
         resolver.query(
             uri,
-            arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY, ContactsContract.Contacts.DISPLAY_NAME_ALTERNATIVE, ContactsContract.Contacts.PHOTO_URI, ContactsContract.Contacts.STARRED, ContactsContract.Contacts.LOOKUP_KEY),
+            arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY, ContactsContract.Contacts.DISPLAY_NAME_ALTERNATIVE, ContactsContract.Contacts.PHOTO_URI, ContactsContract.Contacts.STARRED, ContactsContract.Contacts.LOOKUP_KEY, ContactsContract.Contacts.PHOTO_FILE_ID, ContactsContract.Contacts.PHOTO_ID),
             null, null, null,
         )?.use { cursor ->
             if (!cursor.moveToFirst()) return@withContext null
             val primary = cursor.getString(0).orEmpty()
             name = if (lastFirst) cursor.getString(1)?.takeIf { it.isNotBlank() } ?: primary else primary
-            photo = cursor.getString(2)
+            photo = photoAddress(cursor.getString(2), cursor.getString(5), cursor.getString(6))
             starred = cursor.getInt(3) != 0
             key = cursor.getString(4) ?: lookupKey
         } ?: return@withContext null
 
-        val accounts = accounts().associateBy { it.account }
-        val adapters = contactsAdapters()
         val sources = ArrayList<Source>()
         resolver.query(
             ContactsContract.RawContacts.CONTENT_URI,
@@ -341,7 +387,7 @@ class ContactSource(private val context: Context) {
                 val account = AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty())
                 val local = isLocal(account)
                 val readOnly = !local && adapters[account.type] != true
-                sources += Source(cursor.getLong(0), account, local, readOnly, accounts[account]?.app)
+                sources += Source(cursor.getLong(0), account, local, readOnly, appLabel(account.type))
             }
         }
 

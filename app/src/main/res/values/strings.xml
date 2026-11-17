@@ -27,6 +27,86 @@
     <string name="tooltip_star">Add to favorites</string>
     <string name="tooltip_unstar">Remove from favorites</string>
 
+    <!-- Editor -->
+    <string name="content_description_new_contact">New contact</string>
+    <string name="button_new_contact">New contact</string>
+    <string name="tooltip_edit">Edit</string>
+    <string name="title_new_contact">New contact</string>
+    <string name="title_edit_contact">Edit contact</string>
+    <string name="button_save">Save</string>
+    <string name="desc_save_disabled">The contact is empty</string>
+    <string name="label_save_to_account">Save to account</string>
+    <string name="label_account">Account: %1$s</string>
+    <string name="button_add_photo">Add photo</string>
+    <string name="button_change_photo">Change photo</string>
+    <string name="menu_edit_photo">Edit photo</string>
+    <string name="menu_remove_photo">Remove photo</string>
+    <string name="title_crop_photo">Crop photo</string>
+    <string name="label_given_name">First name</string>
+    <string name="label_family_name">Last name</string>
+    <string name="label_prefix">Prefix</string>
+    <string name="label_middle_name">Middle name</string>
+    <string name="label_suffix">Suffix</string>
+    <string name="label_phonetic_given">Phonetic first name</string>
+    <string name="label_phonetic_family">Phonetic last name</string>
+    <string name="button_more_name_fields">Prefix, middle name, suffix, phonetic</string>
+    <string name="label_phone">Phone</string>
+    <string name="label_email">Email</string>
+    <string name="label_type">Type</string>
+    <string name="button_add_phone">Add number</string>
+    <string name="button_add_email">Add email</string>
+    <string name="button_add_address">Add address</string>
+    <string name="button_add_website">Add website</string>
+    <string name="button_add_date">Add date</string>
+    <string name="button_add_relation">Add relation</string>
+    <string name="button_add_im">Add messaging</string>
+    <string name="button_add_sip">Add SIP address</string>
+    <string name="button_more_fields">More fields</string>
+    <string name="menu_field_address">Address</string>
+    <string name="menu_field_company">Company and title</string>
+    <string name="menu_field_website">Website</string>
+    <string name="menu_field_date">Date</string>
+    <string name="menu_field_relation">Relation</string>
+    <string name="menu_field_nickname">Nickname</string>
+    <string name="menu_field_im">Messaging</string>
+    <string name="menu_field_sip">SIP address</string>
+    <string name="menu_field_note">Note</string>
+    <string name="label_street">Street</string>
+    <string name="label_postcode">Postal code</string>
+    <string name="label_city">City</string>
+    <string name="label_region">Region</string>
+    <string name="label_country">Country</string>
+    <string name="label_company">Company</string>
+    <string name="label_job_title">Title</string>
+    <string name="label_custom_label">Custom label…</string>
+    <string name="title_custom_label">Custom label</string>
+    <string name="menu_set_default">Set as default</string>
+    <string name="menu_unset_default">Remove as default</string>
+    <string name="label_no_year">No year</string>
+    <string name="msg_joined_editing">This contact is joined from several entries (%1$d). Each value is saved to its own account. New fields go to the account: %2$s.</string>
+    <string name="label_read_only_value">%1$s, read-only</string>
+    <string name="msg_changed_while_editing">This contact changed while being edited, probably by a sync. Saving will replace those changes.</string>
+    <string name="button_reload">Reload</string>
+    <string name="msg_deleted_while_editing">This contact was deleted while being edited. Saving will create it again.</string>
+    <string name="title_discard_changes">Discard changes?</string>
+    <string name="msg_discard_changes">The changes to this contact weren’t saved.</string>
+    <string name="button_keep_editing">Keep editing</string>
+    <string name="button_discard">Discard</string>
+    <string name="content_description_remove_value">Remove</string>
+    <string name="error_save_failed">The contact couldn’t be saved.</string>
+    <string name="error_photo_unreadable">This image can’t be read.</string>
+    <string name="error_photo_not_saved">The contact was saved, but its photo couldn’t be.</string>
+    <string name="label_type_im_matrix" translatable="false">Matrix</string>
+    <string name="label_type_im_xmpp" translatable="false">XMPP</string>
+    <string name="label_type_im_signal" translatable="false">Signal</string>
+    <string name="label_type_im_telegram" translatable="false">Telegram</string>
+
+    <!-- Settings › Contacts -->
+    <string name="label_settings_contacts">Contacts</string>
+    <string name="desc_settings_contacts">Default account for new contacts</string>
+    <string name="label_default_account">Default account</string>
+    <string name="title_default_account">Default account</string>
+
     <!-- Search -->
     <string name="content_description_search">Search</string>
     <string name="hint_search">Search contacts</string>

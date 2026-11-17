@@ -35,12 +35,16 @@ private object Photos {
         override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
     }
 
+    /** A photo already in memory, without reading anything. */
+    fun peek(address: String, px: Int): ImageBitmap? = cache.get("$address@$px")?.asImageBitmap()
+
     suspend fun load(context: Context, address: String, px: Int): ImageBitmap? {
         val key = "$address@$px"
         cache.get(key)?.let { return it.asImageBitmap() }
         val bitmap = withContext(Dispatchers.IO) {
             try {
-                context.contentResolver.loadThumbnail(address.toUri(), Size(px, px), null)
+                // The fragment only tells one photo from the next (ContactSource.photoAddress); the storage gets the address
+                context.contentResolver.loadThumbnail(address.substringBefore('#').toUri(), Size(px, px), null)
             } catch (_: Exception) {
                 // Gone meanwhile (a sync), or not readable: the letter avatar stands in
                 null
@@ -54,12 +58,15 @@ private object Photos {
 /**
  * A contact's avatar (SPEC §4.5): the photo cropped to a circle, or the first letter of the name on
  * one of three theme container roles chosen by the lookup key, so a person keeps the color.
+ *
+ * @param hint A photo known to show the same image (the list's thumbnail while the page reads the large one), shown until [photo] is read
  */
 @Composable
-fun Avatar(name: String, lookupKey: String, photo: String?, size: Dp, modifier: Modifier = Modifier) {
+fun Avatar(name: String, lookupKey: String, photo: String?, size: Dp, modifier: Modifier = Modifier, hint: String? = null) {
     val context = LocalContext.current
     val px = with(LocalDensity.current) { size.roundToPx() }
-    val image by produceState<ImageBitmap?>(null, photo, px) { value = photo?.let { Photos.load(context, it, px) } }
+    // What is already in memory shows at once: no letter flashing before a photo read a moment ago
+    val image by produceState(photo?.let { Photos.peek(it, px) } ?: hint?.let { Photos.peek(it, px) }, photo, px) { value = photo?.let { Photos.load(context, it, px) } }
     val bitmap = image
     if (bitmap != null) {
         Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier.size(size).clip(CircleShape))

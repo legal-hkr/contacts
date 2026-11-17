@@ -152,6 +152,11 @@ private fun AccountsStep(step: String, restored: Boolean, onDone: () -> Unit) {
         if (settled) return@LaunchedEffect
         val current = app.preferences.hiddenAccounts.first()
         found.filter { it.account.type in MessagingAccounts.TYPES && it.account.key !in current }.forEach { app.preferences.setAccountShown(it.account.key, false) }
+        // The default account for new contacts, set without asking (SPEC §12.3): the first writable account, or local contacts
+        if (app.preferences.defaultAccount.first() == null) {
+            val targets = app.contacts.targets()
+            app.preferences.setDefaultAccount(targets.first().account.key)
+        }
         settled = true
     }
     val synced = accounts.orEmpty().filter { !it.local }

@@ -7,9 +7,27 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface Screen : NavKey {
     @Serializable data object Contacts : Screen
-    /** A contact's page, by its lookup key (which survives syncs and joins) and the id it had when opened. */
-    @Serializable data class Contact(val lookupKey: String, val id: Long) : Screen
+    /**
+     * A contact's page, by its lookup key (which survives syncs and joins) and the id it had when
+     * opened; the [name] and [photo] the list showed, so the page's header stands at once.
+     */
+    @Serializable data class Contact(val lookupKey: String, val id: Long, val name: String? = null, val photo: String? = null) : Screen
+    /**
+     * The editor: the contact [lookupKey] / [id], or a new one when [lookupKey] is null, with what
+     * another app handed over; [external] when that app waits for the result (SPEC §3.4). [session]
+     * tells one opening from the next, so each starts with a form of its own.
+     */
+    @Serializable data class Editor(
+        val lookupKey: String?,
+        val id: Long,
+        val session: Long,
+        val name: String? = null,
+        val phone: String? = null,
+        val email: String? = null,
+        val external: Boolean = false,
+    ) : Screen
     @Serializable data object Settings : Screen
+    @Serializable data object SettingsContacts : Screen
     @Serializable data object SettingsList : Screen
     @Serializable data object SettingsBackup : Screen
     @Serializable data object SettingsLanguage : Screen

@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.Detail
@@ -53,6 +55,7 @@ import sh.hnet.contacts.model.SearchResult
 import sh.hnet.contacts.ui.components.Avatar
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.TooltipIconButton
+import sh.hnet.contacts.ui.components.onTouchDown
 import sh.hnet.contacts.ui.contact.typeLabel
 
 /**
@@ -139,11 +142,13 @@ private fun ResultRow(result: SearchResult, onOpenContact: (ContactRow) -> Unit)
     val contact = result.contact
     val keyboard = LocalSoftwareKeyboardController.current
     val headline = if (result.field == null) highlighted(contact.name, result.range) else AnnotatedString(contact.name)
+    val app = LocalContext.current.applicationContext as ContactsApplication
     ListItem(
         onClick = {
             keyboard?.hide()
             onOpenContact(contact)
         },
+        modifier = Modifier.onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
         leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp) },
         supportingContent = result.field?.let { field -> { Text(matchLine(field.kind, field.type, field.label, result.text, result.range), maxLines = 1, overflow = TextOverflow.Ellipsis) } },
     ) {

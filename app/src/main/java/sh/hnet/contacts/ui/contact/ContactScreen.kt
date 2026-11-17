@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,9 +38,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SegmentedListItem
@@ -100,9 +101,12 @@ import sh.hnet.contacts.ui.components.settingsRowColors
 fun ContactScreen(
     lookupKey: String,
     id: Long,
+    name: String?,
+    photo: String?,
     snackbars: SnackbarHostState,
     messageScope: CoroutineScope,
     onBack: () -> Unit,
+    onEdit: (Long, String) -> Unit,
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
 ) {
@@ -114,6 +118,7 @@ fun ContactScreen(
     val starFailed = stringResource(R.string.error_star_failed)
     val contact = (state as? ContactState.Ready)?.contact
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = {
@@ -139,18 +144,31 @@ fun ContactScreen(
             },
         )
         when (val current = state) {
-            ContactState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+            // While it reads: the header the list already knew, at once; the details follow (SPEC §6.1, the owner: a loading screen on opening spoils it)
+            ContactState.Loading -> if (name != null) Header(name, lookupKey, photo, null, null, null, null) else Spacer(Modifier.fillMaxSize())
             ContactState.Gone -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onBack) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            is ContactState.Ready -> ContactContent(current.contact, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch)
+            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch)
         }
+    }
+    // Edit (SPEC §6.1): a FAB as on the list; none for a contact only in read-only accounts
+    if (contact != null && !contact.readOnly) {
+        FloatingActionButton(
+            onClick = { onEdit(contact.id, contact.lookupKey) },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp),
+        ) {
+            Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.tooltip_edit))
+        }
+    }
     }
 }
 
 @Composable
 private fun ContactContent(
     contact: ContactDetails,
+    hint: String?,
     listState: LazyListState,
     viewModel: ContactViewModel,
     snackbars: SnackbarHostState,
@@ -198,7 +216,7 @@ private fun ContactContent(
     }
 
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = WindowInsets.navigationBars.asPaddingValues()) {
-        item(key = "header") { Header(contact) }
+        item(key = "header") { Header(contact.name, contact.lookupKey, contact.photo, contact.nickname, contact.phonetic, contact.company, hint) }
         if (contact.readOnly) {
             item(key = "read-only") { ReadOnlyCard(contact.sources) }
         }
@@ -243,7 +261,8 @@ private fun ContactContent(
             }
         }
         item(key = "sources") { Sources(contact.sources) }
-        item(key = "end") { Spacer(Modifier.height(24.dp)) }
+        // Room under the last group for the FAB
+        item(key = "end") { Spacer(Modifier.height(88.dp)) }
     }
 
     choosing?.let { choice ->
@@ -286,19 +305,19 @@ private class QuickAction(@param:DrawableRes val icon: Int, val label: String, v
 
 /** The header (SPEC §6.2): the photo or letter avatar at 112 dp, the name, then nickname, phonetic name and company, each only when present. */
 @Composable
-private fun Header(contact: ContactDetails) {
-    val photoLabel = stringResource(R.string.content_description_photo, contact.name)
+private fun Header(name: String, lookupKey: String, photo: String?, nickname: String?, phonetic: String?, company: String?, hint: String?) {
+    val photoLabel = stringResource(R.string.content_description_photo, name)
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Avatar(contact.name, contact.lookupKey, contact.photo, 112.dp, Modifier.semantics { if (contact.photo != null) contentDescription = photoLabel })
+        Avatar(name, lookupKey, photo, 112.dp, Modifier.semantics { if (photo != null) contentDescription = photoLabel }, hint = hint)
         Text(
-            contact.name,
+            name,
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 12.dp).semantics { heading() },
         )
-        for (line in listOfNotNull(contact.nickname, contact.phonetic, contact.company)) {
+        for (line in listOfNotNull(nickname, phonetic, company)) {
             Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }

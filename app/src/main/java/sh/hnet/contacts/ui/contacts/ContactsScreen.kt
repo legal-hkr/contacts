@@ -4,17 +4,23 @@ package sh.hnet.contacts.ui.contacts
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +30,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +46,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -53,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
 import kotlinx.coroutines.delay
+import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.ListEntry
@@ -61,6 +75,7 @@ import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.FastScroller
 import sh.hnet.contacts.ui.components.TooltipIconButton
+import sh.hnet.contacts.ui.components.onTouchDown
 import sh.hnet.contacts.ui.components.rememberContactsAccessAsk
 
 /**
@@ -69,7 +84,7 @@ import sh.hnet.contacts.ui.components.rememberContactsAccessAsk
  * field in the bar and its results in place of the list (SPEC §5). The FAB comes with the editor.
  */
 @Composable
-fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Unit, viewModel: ListViewModel = viewModel()) {
+fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Unit, onNewContact: () -> Unit, viewModel: ListViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0]
     LaunchedEffect(locale) { viewModel.setLocale(locale) }
@@ -84,6 +99,18 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
     BackHandler(enabled = searching) { viewModel.closeSearch() }
     // Search only where there is something to search: not without access or contacts (SPEC §4.8)
     val searchable = state !is ListState.NoAccess && state !is ListState.NoContacts
+    // The FAB hides while the list scrolls down and comes back when it scrolls up (SPEC §4.10)
+    var fabShown by remember { mutableStateOf(true) }
+    val fabScroll = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -1f) fabShown = false else if (available.y > 1f) fabShown = true
+                return Offset.Zero
+            }
+        }
+    }
+    val fab = !searching && (state is ListState.Loading || state is ListState.AllHidden || state is ListState.Ready)
+    Box(Modifier.fillMaxSize().nestedScroll(fabScroll)) {
     Column(Modifier.fillMaxSize()) {
         if (searching) {
             SearchField(viewModel.searchField, query, onClose = viewModel::closeSearch, onClear = viewModel::clearQuery)
@@ -103,12 +130,29 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
         when (val current = state) {
             ListState.Loading -> Loading()
             ListState.NoAccess -> NoAccess(onAnswer = viewModel::refreshAccess)
-            ListState.NoContacts -> ListEmptyState(stringResource(R.string.msg_no_contacts), stringResource(R.string.desc_no_contacts))
+            ListState.NoContacts -> ListEmptyState(stringResource(R.string.msg_no_contacts), stringResource(R.string.desc_no_contacts)) {
+                Button(onClick = onNewContact) {
+                    Icon(painterResource(R.drawable.ic_person_add), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.button_new_contact))
+                }
+            }
             is ListState.AllHidden -> ListEmptyState(
                 stringResource(R.string.msg_all_hidden),
                 stringResource(R.string.desc_all_hidden, NumberFormat.getIntegerInstance(locale).format(current.total)),
             )
             is ListState.Ready -> ContactList(current, onOpenContact)
+        }
+    }
+        AnimatedVisibility(
+            visible = fab && fabShown,
+            enter = scaleIn(),
+            exit = scaleOut(),
+            modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp),
+        ) {
+            FloatingActionButton(onClick = onNewContact, containerColor = MaterialTheme.colorScheme.primaryContainer) {
+                Icon(painterResource(R.drawable.ic_person_add), contentDescription = stringResource(R.string.content_description_new_contact))
+            }
         }
     }
 }
@@ -169,6 +213,7 @@ private const val STAR = "★"
  */
 @Composable
 private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> Unit) {
+    val app = LocalContext.current.applicationContext as ContactsApplication
     val listState = rememberLazyListState()
     val favorites = state.favorites.isNotEmpty()
     // The letter of every item, and where each letter starts, for the fast scroller
@@ -211,6 +256,7 @@ private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> U
                         val company = contact.company.takeIf { state.companyLine }
                         ListItem(
                             onClick = { onOpenContact(contact) },
+                            modifier = Modifier.onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
                             leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp) },
                             supportingContent = company?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
                         ) {
@@ -233,6 +279,7 @@ private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> U
  */
 @Composable
 private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -> Unit) {
+    val app = LocalContext.current.applicationContext as ContactsApplication
     Column(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)) {
         Text(
             stringResource(R.string.label_favorites),
@@ -247,6 +294,7 @@ private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -
                     modifier = Modifier
                         .width(72.dp)
                         .clip(MaterialTheme.shapes.medium)
+                        .onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch)
                         .clickable { onOpenContact(contact) }
                         .padding(vertical = 4.dp)
                         .semantics(mergeDescendants = true) { contentDescription = contact.name },

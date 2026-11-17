@@ -2,6 +2,10 @@
 
 package sh.hnet.contacts.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.provider.ContactsContract
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,9 +39,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
@@ -45,9 +51,12 @@ import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
+import sh.hnet.contacts.ui.editor.EditorScreen
+import sh.hnet.contacts.ui.editor.Prefill
 import sh.hnet.contacts.ui.settings.AboutScreen
 import sh.hnet.contacts.ui.settings.AppLicenseScreen
 import sh.hnet.contacts.ui.settings.BackupScreen
+import sh.hnet.contacts.ui.settings.ContactsSettingsScreen
 import sh.hnet.contacts.ui.settings.LanguageScreen
 import sh.hnet.contacts.ui.settings.LicensesScreen
 import sh.hnet.contacts.ui.settings.ListSettingsScreen
@@ -61,8 +70,9 @@ import sh.hnet.contacts.ui.welcome.WizardScreen
  * open over it as pages, with Back. On the first start the wizard lies over it all (SPEC §12).
  */
 @Composable
-fun ContactsApp() {
+fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val stack = rememberNavBackStack(Screen.Contacts)
     val snackbars = remember { SnackbarHostState() }
 
@@ -89,6 +99,16 @@ fun ContactsApp() {
     val messages = rememberCoroutineScope()
     var wizard by rememberSaveable { mutableStateOf(!ContactsAccess.wizardDone(appContext)) }
 
+    // What another app asked for: its page over the list, whatever was open
+    LaunchedEffect(asked) {
+        if (asked != null) {
+            // Started for another app's result: its editor alone over the list; reached while running: over what is open, which stays
+            if (asked is Screen.Editor && asked.external) while (stack.size > 1) stack.removeAt(stack.lastIndex)
+            stack.add(asked)
+            onOpened()
+        }
+    }
+
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     val open: (Screen) -> Unit = { stack.add(it) }
 
@@ -97,6 +117,9 @@ fun ContactsApp() {
             NavDisplay(
                 backStack = stack,
                 onBack = back,
+                // Every page's view models belong to its entry and go with it: a new contact's editor starts empty, an editor
+                // opened again reads the contact again, and pages left behind stop watching the storage
+                entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
                 // Shared axis X between the contact list and the pages over it
                 transitionSpec = {
                     (slideInHorizontally(spatial) { shift } + fadeIn(effects)) togetherWith
@@ -111,11 +134,39 @@ fun ContactsApp() {
                         (slideOutHorizontally(spatial) { shift } + fadeOut(fastEffects))
                 },
                 entryProvider = entryProvider<NavKey> {
-                    entry<Screen.Contacts> { ContactsScreen(onOpenSettings = { open(Screen.Settings) }, onOpenContact = { open(Screen.Contact(it.lookupKey, it.id)) }) }
+                    entry<Screen.Contacts> {
+                        ContactsScreen(
+                            onOpenSettings = { open(Screen.Settings) },
+                            onOpenContact = { open(Screen.Contact(it.lookupKey, it.id, it.name, it.photo)) },
+                            onNewContact = { open(Screen.Editor(null, 0, System.nanoTime())) },
+                        )
+                    }
+                    entry<Screen.Editor> { editor ->
+                        EditorScreen(
+                            editor.lookupKey, editor.id, editor.session, Prefill(editor.name, editor.phone, editor.email), snackbars, messages,
+                            onClose = {
+                                // Another app's "Create contact": Close goes back to it, without a contact
+                                if (editor.external) activity?.run { setResult(Activity.RESULT_CANCELED); finish() } else back()
+                            },
+                            onSaved = { saved ->
+                                if (editor.external) {
+                                    activity?.run {
+                                        setResult(Activity.RESULT_OK, Intent().setData(ContactsContract.Contacts.getLookupUri(saved.contactId, saved.lookupKey)))
+                                        finish()
+                                    }
+                                } else {
+                                    back()
+                                    // A new contact's page opens; an edited one's page was under the editor already
+                                    if (editor.lookupKey == null) open(Screen.Contact(saved.lookupKey, saved.contactId))
+                                }
+                            },
+                        )
+                    }
                     entry<Screen.Contact> { contact ->
                         ContactScreen(
-                            contact.lookupKey, contact.id, snackbars, messages,
+                            contact.lookupKey, contact.id, contact.name, contact.photo, snackbars, messages,
                             onBack = back,
+                            onEdit = { id, key -> open(Screen.Editor(key, id, System.nanoTime())) },
                             onOpenContact = { id, key -> open(Screen.Contact(key, id)) },
                             onSearch = { name ->
                                 (appContext as ContactsApplication).pendingSearch.value = name
@@ -127,6 +178,7 @@ fun ContactsApp() {
                         SettingsRootScreen(
                             onBack = back,
                             onOpenList = { open(Screen.SettingsList) },
+                            onOpenContacts = { open(Screen.SettingsContacts) },
                             onOpenLanguage = { open(Screen.SettingsLanguage) },
                             onOpenBackup = { open(Screen.SettingsBackup) },
                             onOpenReset = { open(Screen.SettingsReset) },
@@ -134,6 +186,7 @@ fun ContactsApp() {
                         )
                     }
                     entry<Screen.SettingsList> { ListSettingsScreen(onBack = back) }
+                    entry<Screen.SettingsContacts> { ContactsSettingsScreen(onBack = back) }
                     entry<Screen.SettingsLanguage> { LanguageScreen(onBack = back) }
                     entry<Screen.SettingsBackup> { BackupScreen(onBack = back, snackbars = snackbars, messageScope = messages) }
                     entry<Screen.SettingsReset> { ResetScreen(onBack = back) }

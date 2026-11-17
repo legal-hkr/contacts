@@ -12,10 +12,10 @@ import sh.hnet.contacts.ui.components.SettingsPage
 /**
  * The Settings root (SPEC §13.1), a page over the contact list, as Calendar's: the app's own rows
  * first, then App (language), Data (backup, reset) and About on its own. Rows of features not built
- * yet join with their stages: Contacts, Accounts, Duplicates, Import, Export.
+ * yet join with their stages: Accounts, Duplicates, Import, Export.
  */
 @Composable
-fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
+fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
     val context = LocalContext.current
     val version = BuildConfig.VERSION_NAME.removePrefix("v")
     // Read on every composition: changing it recreates the activity anyway
@@ -24,6 +24,9 @@ fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenLanguag
         SettingsGroup {
             row { shapes ->
                 SettingsNavigationRow(shapes, R.drawable.ic_list, stringResource(R.string.label_settings_list), stringResource(R.string.desc_settings_list), onClick = onOpenList)
+            }
+            row { shapes ->
+                SettingsNavigationRow(shapes, R.drawable.ic_person_add, stringResource(R.string.label_settings_contacts), stringResource(R.string.desc_settings_contacts), onClick = onOpenContacts)
             }
         }
         SettingsGroup(stringResource(R.string.title_settings_group_app)) {

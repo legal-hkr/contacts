@@ -19,7 +19,7 @@ import sh.hnet.contacts.model.ListSettings
 
 /**
  * Backup and restore (SPEC §13.4), as Calendar's: writes a file the user picked and reads one back;
- * a restore replaces the settings and the accounts' visibility with the file's. Nothing is logged.
+ * a restore replaces the settings, the default account and the accounts' visibility with the file's. Nothing is logged.
  */
 class BackupManager(private val app: ContactsApplication, private val stamps: SharedPreferences) {
     private val resolver = app.contentResolver
@@ -73,12 +73,14 @@ class BackupManager(private val app: ContactsApplication, private val stamps: Sh
     suspend fun restore(backup: BackupFile) {
         val s = backup.settings
         val hidden = backup.accounts.filter { !it.shown }.map { AccountKey(it.type, it.name).key }.toSet()
-        app.preferences.replace(ListSettings(sortByLast = s.sortBy == SORT_LAST, lastFirst = s.nameOrder == ORDER_LAST_FIRST, companyLine = s.companyLine ?: false), hidden)
+        val defaultAccount = if (s.defaultAccountType != null && s.defaultAccountName != null) AccountKey(s.defaultAccountType, s.defaultAccountName).key else null
+        app.preferences.replace(ListSettings(sortByLast = s.sortBy == SORT_LAST, lastFirst = s.nameOrder == ORDER_LAST_FIRST, companyLine = s.companyLine ?: false), hidden, defaultAccount)
     }
 
     private suspend fun snapshot(): BackupFile {
         val list = app.preferences.listSettings.first()
         val hidden = app.preferences.hiddenAccounts.first()
+        val defaultAccount = app.preferences.defaultAccount.first()?.let(AccountKey::of)
         // Every account the phone knows, shown or not, so a restore on another phone settles each one once its account is back
         val known = if (app.contacts.hasAccess()) app.contacts.accounts().map { it.account.key }.toSet() else emptySet()
         return BackupFile(
@@ -89,6 +91,8 @@ class BackupManager(private val app: ContactsApplication, private val stamps: Sh
                 sortBy = if (list.sortByLast) SORT_LAST else SORT_FIRST,
                 nameOrder = if (list.lastFirst) ORDER_LAST_FIRST else ORDER_FIRST_LAST,
                 companyLine = list.companyLine,
+                defaultAccountType = defaultAccount?.type,
+                defaultAccountName = defaultAccount?.name,
             ),
             accounts = (known + hidden).mapNotNull { key -> AccountKey.of(key)?.let { BackupAccount(it.type, it.name, key !in hidden) } }.sortedWith(compareBy({ it.type }, { it.name })),
         )

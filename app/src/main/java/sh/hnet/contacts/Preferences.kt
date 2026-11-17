@@ -3,6 +3,7 @@ package sh.hnet.contacts
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -37,8 +38,15 @@ class Preferences(private val context: Context) {
         it[HIDDEN_ACCOUNTS] = if (shown) hidden - key else hidden + key
     }
 
-    /** A restored backup: Settings › List and the accounts' visibility become the file's. */
-    suspend fun replace(list: ListSettings, hidden: Set<String>) = context.settings.edit {
+    /** Settings › Contacts (SPEC §13.3): the account new contacts are saved to, by [sh.hnet.contacts.model.AccountKey.key]; null before one was chosen. */
+    val defaultAccount: Flow<String?> = context.settings.data.map { it[DEFAULT_ACCOUNT] }.distinctUntilChanged()
+
+    suspend fun setDefaultAccount(key: String) = context.settings.edit { it[DEFAULT_ACCOUNT] = key }
+
+    /** A restored backup: Settings › List, the default account and the accounts' visibility become the file's. */
+    suspend fun replace(list: ListSettings, hidden: Set<String>, defaultAccount: String?) = context.settings.edit {
+        // A backup from before the default account existed leaves the current one (a section absent from a file is left untouched)
+        if (defaultAccount != null) it[DEFAULT_ACCOUNT] = defaultAccount
         it[SORT_BY_LAST] = list.sortByLast
         it[LAST_FIRST] = list.lastFirst
         it[COMPANY_LINE] = list.companyLine
@@ -53,5 +61,6 @@ class Preferences(private val context: Context) {
         val LAST_FIRST = booleanPreferencesKey("last_first")
         val COMPANY_LINE = booleanPreferencesKey("company_line")
         val HIDDEN_ACCOUNTS = stringSetPreferencesKey("hidden_accounts")
+        val DEFAULT_ACCOUNT = stringPreferencesKey("default_account")
     }
 }

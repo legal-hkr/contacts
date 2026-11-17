@@ -1,11 +1,20 @@
 package sh.hnet.contacts
 
 import android.app.Application
+import android.os.SystemClock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import sh.hnet.contacts.backup.BackupManager
 import sh.hnet.contacts.data.ContactSource
+import sh.hnet.contacts.data.ContactWriter
+import sh.hnet.contacts.model.ContactDetails
 
 class ContactsApplication : Application() {
     /** Work that outlives a screen; lives as long as the process. */
@@ -16,9 +25,64 @@ class ContactsApplication : Application() {
     /** The system's contacts storage. */
     val contacts: ContactSource by lazy { ContactSource(this) }
 
+    /** The editor's reads and writes. */
+    val writer: ContactWriter by lazy { ContactWriter(this, contacts) }
+
     /** A name the list is asked to search for, taken once (a relation on a contact page that names no one contact, SPEC §6.4). */
     val pendingSearch = MutableStateFlow<String?>(null)
 
     /** Backup and restore of the settings. */
     val backup: BackupManager by lazy { BackupManager(this, getSharedPreferences("stamps", MODE_PRIVATE)) }
+
+    /** A contact read ahead, when a finger touched its row, before the tap opens its page; with when it started. */
+    private var prefetched: Triple<String, Long, Deferred<ContactDetails?>>? = null
+
+    /**
+     * Starts reading a contact as soon as its row is touched (the owner, 17 Nov 2026): the tap
+     * comes a moment later, and the page finds the contact read or nearly so. One at a time; a
+     * touch elsewhere replaces it.
+     */
+    fun prefetch(lookupKey: String, id: Long) {
+        val key = "$lookupKey/$id"
+        val now = SystemClock.elapsedRealtime()
+        // The same row touched again a moment later: the reading under way serves
+        if (prefetched?.first == key && now - prefetched!!.second < FRESH_MS) return
+        prefetched?.third?.cancel()
+        prefetched = Triple(key, now, appScope.async(Dispatchers.IO) {
+            try {
+                contacts.details(lookupKey, id, preferences.listSettings.first().lastFirst)
+            } catch (_: SecurityException) {
+                null
+            }
+        })
+    }
+
+    /** A touch that turned into a scroll: the reading is of no use. */
+    fun cancelPrefetch() {
+        prefetched?.third?.cancel()
+        prefetched = null
+    }
+
+    /** The contact read ahead for [lookupKey] / [id], taken once; null when none was or it failed. */
+    suspend fun takePrefetched(lookupKey: String, id: Long): ContactDetails? {
+        // Older than a few seconds (a touch long ago, the name order or a sync may have changed since): read anew
+        val ahead = prefetched?.takeIf { it.first == "$lookupKey/$id" && SystemClock.elapsedRealtime() - it.second < FRESH_MS } ?: return null
+        prefetched = null
+        return try {
+            ahead.third.await()
+        } catch (_: CancellationException) {
+            null
+        }
+    }
+
+    private companion object {
+        /** How long a read-ahead is good for: a tap follows its touch within a second. */
+        const val FRESH_MS = 3_000L
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // The account apps and sync adapters, read while the list loads rather than when the first contact opens
+        appScope.launch(Dispatchers.IO) { contacts.warmUp() }
+    }
 }

@@ -33,13 +33,17 @@ sealed interface ContactState {
 class ContactViewModel(private val app: ContactsApplication, lookupKey: String, id: Long) : ViewModel() {
     private var key = lookupKey
     private var contactId = id
+    private var first = true
 
     /** The star as the user just set it, shown before the storage confirms. */
     private val starOverride = MutableStateFlow<Boolean?>(null)
 
     val state: StateFlow<ContactState> = combine(app.contacts.changes.debounce(300).onStart { emit(Unit) }, app.preferences.listSettings) { _, settings -> settings.lastFirst }
         .mapLatest { lastFirst ->
-            val details = try {
+            // The first reading may have started already, when the row was touched
+            val ahead = if (first) app.takePrefetched(key, contactId) else null
+            first = false
+            val details = ahead ?: try {
                 app.contacts.details(key, contactId, lastFirst)
             } catch (_: SecurityException) {
                 null
