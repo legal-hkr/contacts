@@ -56,6 +56,9 @@ import sh.hnet.contacts.ui.accounts.AccountsScreen
 import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
+import sh.hnet.contacts.ui.duplicates.DuplicatesScreen
+import sh.hnet.contacts.ui.duplicates.JoinPickerScreen
+import sh.hnet.contacts.ui.duplicates.ReviewScreen
 import sh.hnet.contacts.ui.editor.EditorScreen
 import sh.hnet.contacts.ui.editor.Prefill
 import sh.hnet.contacts.ui.settings.AboutScreen
@@ -157,6 +160,19 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     val thisPhone = stringResource(R.string.label_this_phone)
     val show = stringResource(R.string.button_show)
 
+    val mergedText = stringResource(R.string.msg_merged_permanent)
+    val joinedText = stringResource(R.string.msg_merged)
+    val apartText = stringResource(R.string.msg_not_suggested)
+    val joinedAllText = stringResource(R.string.msg_duplicates_merged)
+    val joinFailed = stringResource(R.string.error_join_failed)
+    /** A join or "not the same person" with Undo, which puts the exceptions back as they were. */
+    val exceptionsWithUndo: (Map<Pair<Long, Long>, Int>, String) -> Unit = { before, message ->
+        messages.launch {
+            snackbars.currentSnackbarData?.dismiss()
+            if (snackbars.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) app.writer.restore(before)
+        }
+    }
+
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     val open: (Screen) -> Unit = { stack.add(it) }
 
@@ -188,6 +204,8 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onOpenContact = { open(Screen.Contact(it.lookupKey, it.id, it.name, it.photo)) },
                             onNewContact = { open(Screen.Editor(null, 0, System.nanoTime())) },
                             onOpenAccounts = { open(Screen.Accounts) },
+                            onOpenDuplicates = { open(Screen.Duplicates) },
+                            onMerge = { ids -> open(Screen.Review(ids, suggested = false)) },
                             onDelete = deleteWithUndo,
                             snackbars = snackbars,
                             messageScope = messages,
@@ -230,6 +248,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onBack = back,
                             onEdit = { id, key -> open(Screen.Editor(key, id, System.nanoTime())) },
                             onMoved = movedWithUndo,
+                            onJoin = { id, name -> open(Screen.JoinPicker(id, name)) },
                             onDelete = { deletion, message ->
                                 // The page closes, back to where it came from, and the contact leaves the list at once
                                 back()
@@ -248,6 +267,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onOpenList = { open(Screen.SettingsList) },
                             onOpenContacts = { open(Screen.SettingsContacts) },
                             onOpenAccounts = { open(Screen.Accounts) },
+                            onOpenDuplicates = { open(Screen.Duplicates) },
                             onOpenLanguage = { open(Screen.SettingsLanguage) },
                             onOpenBackup = { open(Screen.SettingsBackup) },
                             onOpenReset = { open(Screen.SettingsReset) },
@@ -256,6 +276,46 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                     }
                     entry<Screen.SettingsList> { ListSettingsScreen(onBack = back) }
                     entry<Screen.SettingsContacts> { ContactsSettingsScreen(onBack = back) }
+                    entry<Screen.Duplicates> {
+                        DuplicatesScreen(
+                            onBack = back,
+                            onReview = { open(Screen.Review(it.ids, suggested = true)) },
+                            onJoinAll = { groups ->
+                                messages.launch {
+                                    val before = app.writer.join(groups.map { it.ids })
+                                    exceptionsWithUndo(before, joinedAllText.format(groups.size))
+                                }
+                            },
+                        )
+                    }
+                    entry<Screen.Review> { review ->
+                        ReviewScreen(
+                            review.ids, review.suggested,
+                            onBack = back,
+                            onMerged = { _, name ->
+                                back()
+                                messages.launch {
+                                    snackbars.currentSnackbarData?.dismiss()
+                                    snackbars.showSnackbar(mergedText.format(name), duration = SnackbarDuration.Short)
+                                }
+                            },
+                            onJoined = { before, name ->
+                                back()
+                                exceptionsWithUndo(before, joinedText.format(name))
+                            },
+                            onApart = { before ->
+                                back()
+                                exceptionsWithUndo(before, apartText)
+                            },
+                            onFailed = { messages.launch { snackbars.showSnackbar(joinFailed, duration = SnackbarDuration.Short) } },
+                        )
+                    }
+                    entry<Screen.JoinPicker> { picker ->
+                        JoinPickerScreen(picker.id, picker.name, onBack = back, onPick = { other ->
+                            back()
+                            open(Screen.Review(listOf(picker.id, other), suggested = false))
+                        })
+                    }
                     entry<Screen.Accounts> { AccountsScreen(onBack = back, onMoved = { moved, target -> movedWithUndo(moved, target, null) }) }
                     entry<Screen.SettingsLanguage> { LanguageScreen(onBack = back) }
                     entry<Screen.SettingsBackup> { BackupScreen(onBack = back, snackbars = snackbars, messageScope = messages) }

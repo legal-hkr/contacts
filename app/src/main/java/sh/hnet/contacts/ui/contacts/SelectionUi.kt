@@ -61,7 +61,7 @@ fun SelectionBar(count: Int, allSelected: Boolean, onClose: () -> Unit, onSelect
 /**
  * The selection's actions (SPEC §4.7) in a floating toolbar: Star (or Remove from favorites when
  * every one is starred), Share, Save as file, Delete – last, in the error color, asking first.
- * Merge joins with the duplicates stage. After every action the selection ends.
+ * Merge (2 to 10 contacts) opens the review. After every action the selection ends.
  */
 @Composable
 fun SelectionToolbar(
@@ -69,6 +69,7 @@ fun SelectionToolbar(
     snackbars: SnackbarHostState,
     messageScope: CoroutineScope,
     onDone: () -> Unit,
+    onMerge: (List<Long>) -> Unit,
     onDelete: (Deletion, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -135,6 +136,14 @@ fun SelectionToolbar(
             }
         })
         TooltipIconButton(R.drawable.ic_file_save, stringResource(R.string.tooltip_save_as_file), { saveAs.launch(fileName) })
+        // Merge: for 2 to 10 contacts (SPEC §4.7), the review as for a pair chosen by hand
+        if (ids.size in 2..10) {
+            TooltipIconButton(R.drawable.ic_call_merge, stringResource(R.string.tooltip_merge), {
+                val chosen = ids
+                onDone()
+                onMerge(chosen)
+            })
+        }
         Box(Modifier.semantics { if (!deletable) stateDescription = readOnly }) {
             TooltipIconButton(
                 R.drawable.ic_delete,

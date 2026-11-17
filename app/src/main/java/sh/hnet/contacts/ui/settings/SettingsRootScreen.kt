@@ -16,10 +16,10 @@ import sh.hnet.contacts.ui.components.SettingsPage
 /**
  * The Settings root (SPEC §13.1), a page over the contact list, as Calendar's: the app's own rows
  * first, then App (language), Data (backup, reset) and About on its own. Rows of features not built
- * yet join with their stages: Duplicates, Import, Export.
+ * yet join with their stages: Import, Export.
  */
 @Composable
-fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenAccounts: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
+fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenAccounts: () -> Unit, onOpenDuplicates: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
     val context = LocalContext.current
     val version = BuildConfig.VERSION_NAME.removePrefix("v")
     // Read on every composition: changing it recreates the activity anyway
@@ -28,6 +28,7 @@ fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContact
     val hidden by app.preferences.hiddenAccounts.collectAsStateWithLifecycle(emptySet())
     // "Shown: 3 of 5" (SPEC §13.1): every account with contacts or able to take them, local contacts when there are any
     val found by produceState<List<String>?>(null) { value = runCatching { app.contacts.accounts().map { it.account.key } }.getOrNull() }
+    val duplicates by app.duplicates.collectAsStateWithLifecycle()
     val accounts = found?.let { keys -> keys.count { it !in hidden } to keys.size }
     SettingsPage(title = stringResource(R.string.title_settings), onBack = onBack) {
         SettingsGroup {
@@ -41,6 +42,13 @@ fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContact
         SettingsGroup {
             row { shapes ->
                 SettingsNavigationRow(shapes, R.drawable.ic_account_circle, stringResource(R.string.title_accounts), accounts?.let { (shown, all) -> stringResource(R.string.desc_accounts_shown, shown, all) }, onClick = onOpenAccounts)
+            }
+            row { shapes ->
+                SettingsNavigationRow(
+                    shapes, R.drawable.ic_call_merge, stringResource(R.string.title_duplicates),
+                    if (duplicates.isEmpty()) stringResource(R.string.desc_no_suggestions) else stringResource(R.string.desc_duplicates_count, duplicates.size),
+                    onClick = onOpenDuplicates,
+                )
             }
         }
         SettingsGroup(stringResource(R.string.title_settings_group_app)) {

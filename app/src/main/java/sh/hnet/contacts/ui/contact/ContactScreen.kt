@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -47,6 +48,7 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -115,6 +117,7 @@ fun ContactScreen(
     onBack: () -> Unit,
     onEdit: (Long, String) -> Unit,
     onMoved: (Moved, String, String?) -> Unit,
+    onJoin: (Long, String) -> Unit,
     onDelete: (Deletion, String) -> Unit,
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
@@ -158,7 +161,7 @@ fun ContactScreen(
             ContactState.Gone -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onBack) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete, onMoved)
+            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete, onMoved, onJoin)
         }
     }
     // Edit (SPEC §6.1): a FAB as on the list; none for a contact only in read-only accounts
@@ -186,6 +189,7 @@ private fun ContactContent(
     onSearch: (String) -> Unit,
     onDelete: (Deletion, String) -> Unit,
     onMoved: (Moved, String, String?) -> Unit,
+    onJoin: (Long, String) -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
@@ -271,7 +275,7 @@ private fun ContactContent(
                 }
             }
         }
-        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete, onMoved) }
+        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete, onMoved, onJoin) }
         item(key = "sources") { Sources(contact.sources) }
         // Room under the last group for the FAB
         item(key = "end") { Spacer(Modifier.height(88.dp)) }
@@ -453,8 +457,9 @@ private fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String, 
  * contact only in read-only accounts. Move, Join and the QR code join with their stages.
  */
 @Composable
-private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messageScope: CoroutineScope, onDelete: (Deletion, String) -> Unit, onMoved: (Moved, String, String?) -> Unit) {
+private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messageScope: CoroutineScope, onDelete: (Deletion, String) -> Unit, onMoved: (Moved, String, String?) -> Unit, onJoin: (Long, String) -> Unit) {
     var moving by remember { mutableStateOf(false) }
+    var separating by remember { mutableStateOf(false) }
     val app0 = LocalContext.current.applicationContext as ContactsApplication
     // Where it can go (SPEC §8.4): writable accounts other than the one its entry is in; only for a contact with a local or writable entry
     val moveTargets by produceState<List<AccountInfo>>(emptyList(), contact.sources) {
@@ -478,8 +483,9 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp).semantics { heading() },
         )
-        SegmentedListItem(
-            onClick = {
+        // Share, Move, Join, Separate: one segmented group of what applies
+        val rows = buildList<Triple<Int, Int, () -> Unit>> {
+            add(Triple(R.drawable.ic_share, R.string.menu_share) {
                 messageScope.launch {
                     try {
                         Sharing.share(context, Sharing.write(context, app.writer.cards(listOf(contact.id)), fileName))
@@ -487,23 +493,26 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
                         snackbars.showSnackbar(failed.format(fileName), duration = SnackbarDuration.Short)
                     }
                 }
-            },
-            shapes = groupShapes(0, if (moveTargets.isNotEmpty()) 2 else 1),
-            colors = settingsRowColors(),
-            leadingContent = { IconBox(R.drawable.ic_share) },
-            supportingContent = { Text(stringResource(R.string.desc_share_vcard)) },
-        ) {
-            Text(stringResource(R.string.menu_share))
+            })
+            if (moveTargets.isNotEmpty()) add(Triple(R.drawable.ic_drive_file_move, R.string.menu_move_account) { moving = true })
+            add(Triple(R.drawable.ic_call_merge, R.string.menu_join) { onJoin(contact.id, contact.name) })
+            if (contact.sources.size > 1) add(Triple(R.drawable.ic_call_split, R.string.menu_separate) { separating = true })
         }
-        if (moveTargets.isNotEmpty()) {
-            SegmentedListItem(
-                onClick = { moving = true },
-                shapes = groupShapes(1, 2),
-                colors = settingsRowColors(),
-                leadingContent = { IconBox(R.drawable.ic_drive_file_move) },
-                modifier = Modifier.padding(top = 2.dp),
-            ) {
-                Text(stringResource(R.string.menu_move_account))
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            rows.forEachIndexed { index, (icon, label, action) ->
+                SegmentedListItem(
+                    onClick = action,
+                    shapes = groupShapes(index, rows.size),
+                    colors = settingsRowColors(),
+                    leadingContent = { IconBox(icon) },
+                    supportingContent = when (label) {
+                        R.string.menu_share -> ({ Text(stringResource(R.string.desc_share_vcard)) })
+                        R.string.menu_separate -> ({ Text(stringResource(R.string.desc_entries, contact.sources.size)) })
+                        else -> null
+                    },
+                ) {
+                    Text(stringResource(label))
+                }
             }
         }
         if (writable.isNotEmpty()) {
@@ -537,6 +546,27 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
         }
     }
     if (moving) MoveOne(contact, moveTargets, onMoved, onDone = { moving = false })
+    if (separating) {
+        val separated = stringResource(R.string.msg_separated, contact.name)
+        val thisPhone = stringResource(R.string.label_this_phone)
+        val accounts = contact.sources.joinToString(", ") { if (it.local) thisPhone else it.account.name }
+        AlertDialog(
+            onDismissRequest = { separating = false },
+            icon = { Icon(painterResource(R.drawable.ic_call_split), contentDescription = null) },
+            title = { Text(stringResource(R.string.title_separate)) },
+            text = { Text(stringResource(R.string.msg_separate, contact.sources.size, accounts)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    separating = false
+                    messageScope.launch {
+                        app.writer.separate(contact.id)
+                        snackbars.showSnackbar(separated, duration = SnackbarDuration.Short)
+                    }
+                }) { Text(stringResource(R.string.button_separate)) }
+            },
+            dismissButton = { TextButton(onClick = { separating = false }) { Text(stringResource(R.string.button_cancel)) } },
+        )
+    }
 }
 
 @Composable

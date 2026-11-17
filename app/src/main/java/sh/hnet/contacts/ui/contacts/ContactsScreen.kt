@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -29,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -41,10 +43,12 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -97,6 +101,8 @@ fun ContactsScreen(
     onOpenContact: (ContactRow) -> Unit,
     onNewContact: () -> Unit,
     onOpenAccounts: () -> Unit,
+    onOpenDuplicates: () -> Unit,
+    onMerge: (List<Long>) -> Unit,
     onDelete: (Deletion, String) -> Unit,
     snackbars: SnackbarHostState,
     messageScope: CoroutineScope,
@@ -174,7 +180,7 @@ fun ContactsScreen(
                     Text(stringResource(R.string.button_choose_accounts))
                 }
             }
-            is ListState.Ready -> ContactList(current, selection, onOpenContact)
+            is ListState.Ready -> ContactList(current, selection, onOpenContact, onOpenDuplicates)
         }
     }
         AnimatedVisibility(
@@ -191,6 +197,7 @@ fun ContactsScreen(
             SelectionToolbar(
                 rows.filter { it.id in selection.ids }, snackbars, messageScope,
                 onDone = selection::clear,
+                onMerge = onMerge,
                 onDelete = onDelete,
                 modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp),
             )
@@ -244,6 +251,31 @@ private fun NoAccess(onAnswer: () -> Unit) {
     }
 }
 
+/**
+ * The duplicates card (SPEC §4.4): a merge icon, "Possible duplicates: 4", one sentence, Not now and
+ * Review. Not now puts it away until there are more suggestions than now.
+ */
+@Composable
+private fun DuplicatesCard(count: Int, onReview: () -> Unit, onNotNow: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp).background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp)).padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+                Icon(painterResource(R.drawable.ic_call_merge), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Column {
+                Text(stringResource(R.string.title_possible_duplicates, count), style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.desc_possible_duplicates), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Row(Modifier.align(Alignment.End).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onNotNow) { Text(stringResource(R.string.button_not_now)) }
+            FilledTonalButton(onClick = onReview) { Text(stringResource(R.string.button_review)) }
+        }
+    }
+}
+
 /** A selected row's avatar (SPEC §4.7): a primary circle with a check. */
 @Composable
 private fun SelectedMark(size: Dp) {
@@ -261,18 +293,24 @@ private const val STAR = "★"
  * scroller with the letter index on the end edge.
  */
 @Composable
-private fun ContactList(state: ListState.Ready, selection: Selection, onOpenContact: (ContactRow) -> Unit) {
+private fun ContactList(state: ListState.Ready, selection: Selection, onOpenContact: (ContactRow) -> Unit, onOpenDuplicates: () -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
+    val duplicates by app.duplicates.collectAsStateWithLifecycle()
+    var dismissed by remember { mutableIntStateOf(app.duplicatesDismissed) }
+    // Fewer suggestions than when put away (some merged): the next new one shows the card again
+    LaunchedEffect(duplicates.size) { if (duplicates.size < dismissed) { dismissed = duplicates.size; app.duplicatesDismissed = duplicates.size } }
     val listState = rememberLazyListState()
     val favorites = state.favorites.isNotEmpty()
     // The letter of every item, and where each letter starts, for the fast scroller
-    val index = remember(state) {
+    val index = remember(state, duplicates.size > dismissed, selection.active) {
         val sections = ArrayList<String>(state.entries.size + 1)
         val starts = LinkedHashMap<String, Int>()
         if (favorites) {
             starts[STAR] = 0
             sections += STAR
         }
+        // The duplicates card files with the first letter's place
+        if (duplicates.size > dismissed && !selection.active) sections += state.entries.firstOrNull()?.let { (it as? ListEntry.Header)?.letter }.orEmpty()
         var letter = ""
         for (entry in state.entries) {
             if (entry is ListEntry.Header) {
@@ -293,6 +331,15 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
             // Favorites leave the list while selecting (SPEC §4.7)
             if (favorites && !selection.active) {
                 item(key = "favorites", contentType = "favorites") { Favorites(state.favorites, onOpenContact, onSelect = selection::toggle) }
+            }
+            // The duplicates card (SPEC §4.4) while there are more suggestions than when it was put away
+            if (!selection.active && duplicates.size > dismissed) {
+                item(key = "duplicates", contentType = "duplicates") {
+                    DuplicatesCard(duplicates.size, onReview = onOpenDuplicates, onNotNow = {
+                        app.duplicatesDismissed = duplicates.size
+                        dismissed = duplicates.size
+                    })
+                }
             }
             items(state.entries, key = { it.key }, contentType = { it::class }) { entry ->
                 when (entry) {

@@ -29,6 +29,11 @@ sealed interface Screen : NavKey {
     @Serializable data object Settings : Screen
     @Serializable data object SettingsContacts : Screen
     @Serializable data object Accounts : Screen
+    @Serializable data object Duplicates : Screen
+    /** "Same person?" for the contacts [ids]; [suggested] when they came from the suggestions. */
+    @Serializable data class Review(val ids: List<Long>, val suggested: Boolean) : Screen
+    /** Join [id] (named [name]) with another contact, picked by search. */
+    @Serializable data class JoinPicker(val id: Long, val name: String) : Screen
     @Serializable data object SettingsList : Screen
     @Serializable data object SettingsBackup : Screen
     @Serializable data object SettingsLanguage : Screen

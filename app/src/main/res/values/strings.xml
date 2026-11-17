@@ -155,6 +155,56 @@
     <string name="msg_contact_moved">Contact moved: %1$s (%2$s)</string>
     <string name="error_move_failed">Contacts couldn’t be moved (moved: %1$d).</string>
 
+    <!-- Duplicates -->
+    <string name="title_duplicates">Duplicates</string>
+    <string name="desc_duplicates_intro">Merging into one contact keeps one entry and deletes the others. Only joining deletes nothing, and the contact can be separated later.</string>
+    <string name="label_reason_number">Same number</string>
+    <string name="label_reason_email">Same email</string>
+    <string name="label_reason_name_email">Same name and email</string>
+    <string name="button_merge_all">Merge all</string>
+    <string name="msg_no_duplicates">There are no duplicate suggestions.</string>
+    <string name="title_same_person">Same person?</string>
+    <string name="label_after_merging">After merging</string>
+    <string name="label_tag_left">Left</string>
+    <string name="label_tag_right">Right</string>
+    <string name="label_tag_both">Both</string>
+    <string name="label_tag_all">All</string>
+    <string name="button_merge">Merge</string>
+    <string name="button_not_same_person">Not the same person</string>
+    <string name="msg_merged">Contacts merged: %1$s</string>
+    <string name="msg_not_suggested">This pair won’t be suggested again.</string>
+    <string name="msg_duplicates_merged">Duplicates merged: %1$d</string>
+    <string name="label_join_with">Join with: %1$s</string>
+    <string name="desc_duplicates_count">Suggestions: %1$d</string>
+    <string name="desc_no_suggestions">No suggestions</string>
+    <string name="title_possible_duplicates">Possible duplicates: %1$d</string>
+    <string name="desc_possible_duplicates">The same people in different accounts. Review them before merging.</string>
+    <string name="button_review">Review</string>
+    <string name="tooltip_merge">Merge</string>
+    <string name="label_more_avatars">+%1$d</string>
+    <string name="menu_join">Join with another contact</string>
+    <string name="menu_separate">Separate</string>
+    <string name="desc_entries">Entries: %1$d</string>
+    <string name="title_separate">Separate contact?</string>
+    <string name="msg_separate">This contact joins several entries (%1$d: %2$s). After separating, each entry becomes a contact of its own.</string>
+    <string name="button_separate">Separate</string>
+    <string name="msg_separated">Contact separated: %1$s</string>
+    <string name="error_join_failed">The contacts couldn’t be joined.</string>
+    <string name="label_merge_permanent">Merge into one</string>
+    <string name="label_merge_join">Only join</string>
+    <string name="desc_merge_permanent">One entry stays, with the values chosen below. The other entries will be deleted.</string>
+    <string name="desc_merge_join">The entries stay in their accounts and show as one contact. They can be separated later.</string>
+    <string name="label_entry_stays">Entry that stays</string>
+    <string name="msg_entry_deleted">The entry in %1$s will be deleted.</string>
+    <string name="msg_entry_joined">The entry in %1$s is read-only. It will only be joined.</string>
+    <string name="label_merge_name">Name</string>
+    <string name="label_merge_photo">Photo</string>
+    <string name="button_merge_permanent">Merge into one</string>
+    <string name="title_merge_permanent">Merge contacts?</string>
+    <string name="msg_merge_permanent">The entries in these accounts will be deleted (%1$s). This can’t be undone.</string>
+    <string name="msg_merge_permanent_none">The contacts will become one. This can’t be undone.</string>
+    <string name="msg_merged_permanent">Contacts merged into one: %1$s</string>
+
     <!-- Search -->
     <string name="content_description_search">Search</string>
     <string name="hint_search">Search contacts</string>

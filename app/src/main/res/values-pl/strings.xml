@@ -151,6 +151,56 @@
     <string name="msg_contact_moved">Przeniesiono kontakt: %1$s (%2$s)</string>
     <string name="error_move_failed">Nie udało się przenieść kontaktów (przeniesiono: %1$d).</string>
 
+    <!-- Duplicates -->
+    <string name="title_duplicates">Duplikaty</string>
+    <string name="desc_duplicates_intro">Scalenie w jeden kontakt zostawia jeden wpis i usuwa pozostałe. Samo połączenie niczego nie usuwa, a kontakt można później rozdzielić.</string>
+    <string name="label_reason_number">Ten sam numer</string>
+    <string name="label_reason_email">Ten sam e-mail</string>
+    <string name="label_reason_name_email">Ta sama nazwa i e-mail</string>
+    <string name="button_merge_all">Połącz wszystkie</string>
+    <string name="msg_no_duplicates">Brak sugestii duplikatów.</string>
+    <string name="title_same_person">Ta sama osoba?</string>
+    <string name="label_after_merging">Po połączeniu</string>
+    <string name="label_tag_left">Lewy</string>
+    <string name="label_tag_right">Prawy</string>
+    <string name="label_tag_both">W obu</string>
+    <string name="label_tag_all">We wszystkich</string>
+    <string name="button_merge">Połącz</string>
+    <string name="button_not_same_person">To nie ta sama osoba</string>
+    <string name="msg_merged">Połączono kontakty: %1$s</string>
+    <string name="msg_not_suggested">Ta para nie będzie już sugerowana.</string>
+    <string name="msg_duplicates_merged">Połączono duplikaty: %1$d</string>
+    <string name="label_join_with">Połącz z: %1$s</string>
+    <string name="desc_duplicates_count">Sugestie: %1$d</string>
+    <string name="desc_no_suggestions">Brak sugestii</string>
+    <string name="title_possible_duplicates">Możliwe duplikaty: %1$d</string>
+    <string name="desc_possible_duplicates">Te same osoby na różnych kontach. Przejrzyj je przed połączeniem.</string>
+    <string name="button_review">Przejrzyj</string>
+    <string name="tooltip_merge">Połącz</string>
+    <string name="label_more_avatars">+%1$d</string>
+    <string name="menu_join">Połącz z innym kontaktem</string>
+    <string name="menu_separate">Rozdziel</string>
+    <string name="desc_entries">Wpisy: %1$d</string>
+    <string name="title_separate">Rozdzielić kontakt?</string>
+    <string name="msg_separate">Ten kontakt łączy kilka wpisów (%1$d: %2$s). Po rozdzieleniu każdy wpis będzie osobnym kontaktem.</string>
+    <string name="button_separate">Rozdziel</string>
+    <string name="msg_separated">Rozdzielono kontakt: %1$s</string>
+    <string name="error_join_failed">Nie udało się połączyć kontaktów.</string>
+    <string name="label_merge_permanent">Scal w jeden</string>
+    <string name="label_merge_join">Tylko połącz</string>
+    <string name="desc_merge_permanent">Zostaje jeden wpis z wartościami wybranymi poniżej. Pozostałe wpisy zostaną usunięte.</string>
+    <string name="desc_merge_join">Wpisy zostają na swoich kontach i pokazują się jako jeden kontakt. Można je później rozdzielić.</string>
+    <string name="label_entry_stays">Zostaje wpis</string>
+    <string name="msg_entry_deleted">Wpis z konta %1$s zostanie usunięty.</string>
+    <string name="msg_entry_joined">Wpis z konta %1$s jest tylko do odczytu. Zostanie tylko połączony.</string>
+    <string name="label_merge_name">Imię i nazwisko</string>
+    <string name="label_merge_photo">Zdjęcie</string>
+    <string name="button_merge_permanent">Scal w jeden</string>
+    <string name="title_merge_permanent">Scalić kontakty?</string>
+    <string name="msg_merge_permanent">Wpisy z tych kont zostaną usunięte (%1$s). Tego nie można cofnąć.</string>
+    <string name="msg_merge_permanent_none">Kontakty staną się jednym. Tego nie można cofnąć.</string>
+    <string name="msg_merged_permanent">Scalono kontakty w jeden: %1$s</string>
+
     <!-- Search -->
     <string name="content_description_search">Szukaj</string>
     <string name="hint_search">Szukaj kontaktów</string>

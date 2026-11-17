@@ -32,7 +32,7 @@ import sh.hnet.contacts.model.Origin
 import sh.hnet.contacts.model.Write
 
 /** An entry of the contact being edited, with the version it had when the editor read it (SPEC §7.7). */
-data class EditEntry(val rawContactId: Long, val account: AccountKey, val local: Boolean, val readOnly: Boolean, val version: Int)
+data class EditEntry(val rawContactId: Long, val account: AccountKey, val local: Boolean, val readOnly: Boolean, val version: Int, val contactId: Long = 0)
 
 /** A contact as the editor reads it: its entries and every value with the rows it came from. */
 data class EditSnapshot(val contactId: Long, val lookupKey: String, val entries: List<EditEntry>, val values: List<FormValue>, val photo: String?) {
@@ -50,6 +50,9 @@ data class Deletion(val contacts: Set<Long>, val rawContactIds: List<Long>, val 
 
 /** A move done as far as copying: the old entries to delete and the copies made, for Undo; [failed] contacts couldn't be copied. */
 data class Moved(val oldRawContactIds: List<Long>, val newRawContactIds: List<Long>, val failed: Int)
+
+/** A duplicate group read for the review: everything of all its contacts together ([all]) and each contact's own reading ([each]). */
+data class MergeSource(val all: EditSnapshot, val each: List<EditSnapshot>)
 
 /** What the editor does with the photo on Save. */
 sealed interface PhotoChange {
@@ -138,8 +141,14 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         }
     }
 
-    private fun read(uri: Uri, lookupKey: String): EditSnapshot? {
+    /**
+     * The contact at [uri] for the form; with [others], those contacts' entries and values too, as
+     * one set (the review of a merge, SPEC §9.4): equal values of all of them once.
+     */
+    private fun read(uri: Uri, lookupKey: String, others: List<Long> = emptyList()): EditSnapshot? {
         val contactId = ContentUris.parseId(uri)
+        val ids = (listOf(contactId) + others).distinct()
+        val inIds = ids.joinToString(",")
         var key = lookupKey
         var photo: String? = null
         var nameSource = 0L
@@ -153,15 +162,17 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         val entries = ArrayList<EditEntry>()
         resolver.query(
             ContactsContract.RawContacts.CONTENT_URI,
-            arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME, ContactsContract.RawContacts.VERSION),
-            "${ContactsContract.RawContacts.CONTACT_ID} = ? AND ${ContactsContract.RawContacts.DELETED} = 0", arrayOf(contactId.toString()), ContactsContract.RawContacts._ID,
+            arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME, ContactsContract.RawContacts.VERSION, ContactsContract.RawContacts.CONTACT_ID),
+            "${ContactsContract.RawContacts.CONTACT_ID} IN ($inIds) AND ${ContactsContract.RawContacts.DELETED} = 0", null, ContactsContract.RawContacts._ID,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val account = AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty())
                 val local = source.isLocal(account)
-                entries += EditEntry(cursor.getLong(0), account, local, !local && adapters[account.type] != true, cursor.getInt(3))
+                entries += EditEntry(cursor.getLong(0), account, local, !local && adapters[account.type] != true, cursor.getInt(3), cursor.getLong(4))
             }
         }
+        // The asked contact's entries first, then the others' in the order they were given
+        entries.sortBy { ids.indexOf(it.contactId) }
         val readOnlyEntries = entries.filter { it.readOnly }.map { it.rawContactId }.toSet()
         val region = source.region()
         // Read rows grouped by what makes them equal (SPEC §9.5); the name is one value for the whole contact
@@ -172,7 +183,7 @@ class ContactWriter(private val context: Context, private val source: ContactSou
                 ContactsContract.Data._ID, ContactsContract.Data.RAW_CONTACT_ID, ContactsContract.Data.MIMETYPE, ContactsContract.Data.IS_SUPER_PRIMARY,
                 "data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8", "data9", "data10",
             ),
-            "${ContactsContract.Data.CONTACT_ID} = ?", arrayOf(contactId.toString()), ContactsContract.Data._ID,
+            "${ContactsContract.Data.CONTACT_ID} IN ($inIds)", null, ContactsContract.Data._ID,
         )?.use { cursor ->
             fun column(name: String): String? = cursor.getString(cursor.getColumnIndexOrThrow(name))?.takeIf { it.isNotBlank() }
             while (cursor.moveToNext()) {
@@ -451,6 +462,131 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         if (rawContactIds.isEmpty()) return@withContext
         val operations = ArrayList(rawContactIds.map { ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, it)).build() })
         resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+    }
+
+    /**
+     * A duplicate group for the review (SPEC §9.4): every entry and every value of [ids] together
+     * (equal values once), and each contact's own reading for its name and photo.
+     */
+    suspend fun group(ids: List<Long>): MergeSource? = withContext(Dispatchers.IO) {
+        val uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, ids.firstOrNull() ?: return@withContext null)
+        val all = read(uri, "", ids.drop(1)) ?: return@withContext null
+        val each = ids.mapNotNull { id -> read(ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id), "") }
+        MergeSource(all, each)
+    }
+
+    /** The exception types the storage keeps now for [pairs] of entries; a pair without one is automatic. */
+    private fun exceptions(pairs: List<Pair<Long, Long>>): Map<Pair<Long, Long>, Int> {
+        val ids = pairs.flatMap { listOf(it.first, it.second) }.distinct()
+        val found = HashMap<Pair<Long, Long>, Int>()
+        if (ids.isNotEmpty()) {
+            resolver.query(
+                ContactsContract.AggregationExceptions.CONTENT_URI,
+                arrayOf(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, ContactsContract.AggregationExceptions.TYPE),
+                // Either end: the storage doesn't promise which entry it keeps first
+                "${ContactsContract.AggregationExceptions.RAW_CONTACT_ID1} IN (${ids.joinToString(",")}) OR ${ContactsContract.AggregationExceptions.RAW_CONTACT_ID2} IN (${ids.joinToString(",")})", null, null,
+            )?.use { cursor -> while (cursor.moveToNext()) found[minOf(cursor.getLong(0), cursor.getLong(1)) to maxOf(cursor.getLong(0), cursor.getLong(1))] = cursor.getInt(2) }
+        }
+        return pairs.associateWith { (a, b) -> found[minOf(a, b) to maxOf(a, b)] ?: ContactsContract.AggregationExceptions.TYPE_AUTOMATIC }
+    }
+
+    private fun setException(a: Long, b: Long, type: Int) {
+        if (a == b) return
+        resolver.update(ContactsContract.AggregationExceptions.CONTENT_URI, ContentValues().apply {
+            put(ContactsContract.AggregationExceptions.TYPE, type)
+            put(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, a)
+            put(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, b)
+        }, null, null)
+    }
+
+    /** The entries of each of [ids]. */
+    private fun entriesOf(ids: Collection<Long>): Map<Long, List<Long>> {
+        val result = LinkedHashMap<Long, MutableList<Long>>()
+        if (ids.isEmpty()) return result
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID),
+            "${ContactsContract.RawContacts.CONTACT_ID} IN (${ids.joinToString(",")}) AND ${ContactsContract.RawContacts.DELETED} = 0", null, null,
+        )?.use { cursor -> while (cursor.moveToNext()) result.getOrPut(cursor.getLong(1)) { ArrayList() } += cursor.getLong(0) }
+        return result
+    }
+
+    /**
+     * Sets [type] for the entry pairs between different contacts of [groups] (each group joined or
+     * kept apart as a whole) and returns what was there before, for Undo.
+     */
+    private fun across(groups: List<List<Long>>, type: Int): Map<Pair<Long, Long>, Int> {
+        val pairs = ArrayList<Pair<Long, Long>>()
+        for (group in groups) {
+            val entries = entriesOf(group)
+            val ids = group.filter { it in entries }
+            for (i in ids.indices) for (j in i + 1 until ids.size) for (a in entries.getValue(ids[i])) for (b in entries.getValue(ids[j])) pairs += a to b
+        }
+        val before = exceptions(pairs)
+        for ((a, b) in pairs) setException(a, b, type)
+        return before
+    }
+
+    /** "Only join" (SPEC §9.4, §9.7): every group becomes one contact; entries stay in their accounts. The exceptions before, for Undo. */
+    suspend fun join(groups: List<List<Long>>): Map<Pair<Long, Long>, Int> = withContext(Dispatchers.IO) { across(groups, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER) }
+
+    /** "Not the same person" (SPEC §9.4, the owner's decision of 17 Nov 2026: kept in the storage): the contacts kept apart. The exceptions before, for Undo. */
+    suspend fun keepApart(ids: List<Long>): Map<Pair<Long, Long>, Int> = withContext(Dispatchers.IO) { across(listOf(ids), ContactsContract.AggregationExceptions.TYPE_KEEP_SEPARATE) }
+
+    /** Undo of a join or of "not the same person": the exceptions as they were. */
+    suspend fun restore(before: Map<Pair<Long, Long>, Int>) = withContext(Dispatchers.IO) {
+        for ((pair, type) in before) setException(pair.first, pair.second, type)
+    }
+
+    /** Separate (SPEC §6.10): every entry of the contact becomes a contact of its own, kept apart from the others. */
+    suspend fun separate(contactId: Long) = withContext(Dispatchers.IO) {
+        val entries = entriesOf(listOf(contactId))[contactId].orEmpty()
+        for (i in entries.indices) for (j in i + 1 until entries.size) setException(entries[i], entries[j], ContactsContract.AggregationExceptions.TYPE_KEEP_SEPARATE)
+    }
+
+    /**
+     * "Merge into one contact" (the owner's decision of 17 Nov 2026): the entry [target] keeps the
+     * values [kept] (checked in the review) and loses those of its own not kept; it takes [name]
+     * and the photo of the contact [photoFrom]; every other writable entry of the group is deleted,
+     * and the read-only ones are joined with it. Asked for in a dialog first, without Undo.
+     * Returns the merged contact, or null when the storage refused.
+     */
+    suspend fun mergePermanently(source: MergeSource, target: Long, kept: Set<Long>, name: FormValue?, photoFrom: Long?): Saved? = withContext(Dispatchers.IO) {
+        try {
+            val operations = ArrayList<ContentProviderOperation>()
+            for (value in source.all.values) {
+                if (value.kind == EditKind.NAME) continue
+                val inTarget = value.origins.filter { it.rawContactId == target }
+                if (value.key in kept) {
+                    if (inTarget.isEmpty()) operations += insert(value.copy(origins = emptyList()), target, false)
+                } else {
+                    inTarget.forEach { operations += ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.Data.CONTENT_URI, it.dataId)).build() }
+                }
+            }
+            if (name != null) {
+                val targetContact = source.all.entries.firstOrNull { it.rawContactId == target }?.contactId
+                val targetName = source.each.firstOrNull { it.contactId == targetContact }?.values?.firstOrNull { it.kind == EditKind.NAME }?.origins?.firstOrNull { it.rawContactId == target }
+                operations += if (targetName != null) update(targetName.dataId, name) else insert(name.copy(origins = emptyList()), target, false)
+            }
+            val others = source.all.entries.filter { it.rawContactId != target }
+            for (entry in others.filter { !it.readOnly }) operations += ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, entry.rawContactId)).build()
+            // The photo chosen, read before its entry goes
+            val targetContact = source.all.entries.first { it.rawContactId == target }.contactId
+            val photo = if (photoFrom != null && photoFrom != targetContact) {
+                try {
+                    ContactsContract.Contacts.openContactPhotoInputStream(resolver, ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, photoFrom), true)?.use { it.readBytes() }
+                } catch (_: Exception) {
+                    null
+                }
+            } else null
+            resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+            photo?.let { writePhoto(PhotoChange.Set(it), listOf(target)) }
+            for (entry in others.filter { it.readOnly }) keepTogether(target, entry.rawContactId)
+            val found = ContactsContract.RawContacts.getContactLookupUri(resolver, ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, target))?.let(::contact)
+            found ?: Saved(targetContact, "")
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /** Of [dataIds], those no longer in the storage. */

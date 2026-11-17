@@ -35,6 +35,8 @@ import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.Detail
 import sh.hnet.contacts.model.DetailKind
 import sh.hnet.contacts.model.Details
+import sh.hnet.contacts.model.DupContact
+import sh.hnet.contacts.model.Duplicates
 import sh.hnet.contacts.model.ListSettings
 import sh.hnet.contacts.model.MatchKind
 import sh.hnet.contacts.model.SearchContact
@@ -345,9 +347,20 @@ class ContactSource(private val context: Context) {
         return network.ifEmpty { Locale.getDefault().country }.uppercase(Locale.ROOT)
     }
 
-    /** What makes two numbers the same (SPEC §9.5): the international form where the region allows, else the digits. */
-    fun numberKey(number: String, region: String = region()): String =
-        PhoneNumberUtils.formatNumberToE164(number, region)?.let(Details::digits) ?: Details.digits(number)
+    /**
+     * What makes two numbers the same (SPEC §9.2, §9.5): their last nine digits – the national
+     * number in most countries, Poland's included –, so "+48 609 111 222" and "609111222" agree
+     * whatever region the phone is in (on the owner's emulator, in the USA, the international form
+     * told them apart); shorter numbers whole.
+     */
+    fun numberKey(number: String, @Suppress("UNUSED_PARAMETER") region: String = ""): String {
+        val digits = Details.digits(number)
+        return if (digits.length > NATIONAL_DIGITS) digits.takeLast(NATIONAL_DIGITS) else digits
+    }
+
+    private companion object {
+        const val NATIONAL_DIGITS = 9
+    }
 
     /** A number as the page and lists show it (SPEC §7.8); as stored when it can't be formatted. */
     fun displayNumber(number: String, region: String = region()): String = PhoneNumberUtils.formatNumber(number, region) ?: number
@@ -489,5 +502,52 @@ class ContactSource(private val context: Context) {
         } catch (_: Exception) {
             false
         }
+    }
+
+    /**
+     * Every contact of the shown accounts as the duplicate search compares them (SPEC §9.2): the
+     * folded name, number keys, e-mails, addresses and websites.
+     */
+    suspend fun dupContacts(hidden: Set<String>): List<DupContact> = withContext(Dispatchers.IO) {
+        val rows = rows(ListSettings(), hidden).filter { it.second }.map { it.first }
+        val numbers = HashMap<Long, MutableSet<String>>()
+        val emails = HashMap<Long, MutableSet<String>>()
+        val others = HashMap<Long, MutableSet<String>>()
+        val region = region()
+        resolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            arrayOf(ContactsContract.Data.CONTACT_ID, ContactsContract.Data.MIMETYPE, ContactsContract.Data.DATA1),
+            "${ContactsContract.Data.MIMETYPE} IN (?, ?, ?, ?)",
+            arrayOf(Phone.CONTENT_ITEM_TYPE, Email.CONTENT_ITEM_TYPE, StructuredPostal.CONTENT_ITEM_TYPE, Website.CONTENT_ITEM_TYPE), null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(0)
+                val value = cursor.getString(2)?.trim()?.takeIf { it.isNotEmpty() } ?: continue
+                when (cursor.getString(1)) {
+                    Phone.CONTENT_ITEM_TYPE -> numbers.getOrPut(id) { HashSet() } += numberKey(value, region)
+                    Email.CONTENT_ITEM_TYPE -> emails.getOrPut(id) { HashSet() } += value.lowercase()
+                    else -> others.getOrPut(id) { HashSet() } += value.lowercase()
+                }
+            }
+        }
+        rows.map { DupContact(it.id, Duplicates.foldName(it.sortName), numbers[it.id].orEmpty(), emails[it.id].orEmpty(), others[it.id].orEmpty()) }
+    }
+
+    /** The contact pairs the storage keeps apart ("not the same person", SPEC §9.2), from its entries' exceptions. */
+    suspend fun separatePairs(): Set<Pair<Long, Long>> = withContext(Dispatchers.IO) {
+        val rawPairs = ArrayList<Pair<Long, Long>>()
+        resolver.query(
+            ContactsContract.AggregationExceptions.CONTENT_URI,
+            arrayOf(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, ContactsContract.AggregationExceptions.RAW_CONTACT_ID2),
+            "${ContactsContract.AggregationExceptions.TYPE} = ${ContactsContract.AggregationExceptions.TYPE_KEEP_SEPARATE}", null, null,
+        )?.use { cursor -> while (cursor.moveToNext()) rawPairs += cursor.getLong(0) to cursor.getLong(1) }
+        if (rawPairs.isEmpty()) return@withContext emptySet()
+        val contactOf = HashMap<Long, Long>()
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID),
+            "${ContactsContract.RawContacts.DELETED} = 0", null, null,
+        )?.use { cursor -> while (cursor.moveToNext()) contactOf[cursor.getLong(0)] = cursor.getLong(1) }
+        rawPairs.mapNotNull { (a, b) -> val ca = contactOf[a] ?: return@mapNotNull null; val cb = contactOf[b] ?: return@mapNotNull null; ca to cb }.toSet()
     }
 }
