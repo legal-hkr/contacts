@@ -22,6 +22,75 @@
     <string name="msg_all_hidden">Wszystkie konta są ukryte.</string>
     <string name="desc_all_hidden">Kontakty w systemie: %1$s. Żadne konto nie jest pokazywane na liście.</string>
 
+    <!-- List: favorites -->
+    <string name="label_favorites">Ulubione</string>
+    <string name="tooltip_star">Dodaj do ulubionych</string>
+    <string name="tooltip_unstar">Usuń z ulubionych</string>
+
+    <!-- Contact page -->
+    <string name="tooltip_call">Zadzwoń</string>
+    <string name="tooltip_message">Wiadomość</string>
+    <string name="tooltip_email">E-mail</string>
+    <string name="tooltip_map">Mapa</string>
+    <string name="label_default_suffix">%1$s, domyślny</string>
+    <string name="label_website">Strona</string>
+    <string name="msg_no_maps_app">Brak aplikacji map. Adres skopiowano.</string>
+    <string name="title_sources">Pochodzenie</string>
+    <string name="label_local_contacts">Kontakty lokalne</string>
+    <string name="label_read_only_suffix">%1$s, tylko do odczytu</string>
+    <string name="msg_read_only_contact">Ten kontakt pochodzi z konta tylko do odczytu (%1$s). Zmienić lub usunąć można go tylko w aplikacji %2$s.</string>
+    <string name="title_which_number">Który numer?</string>
+    <string name="title_which_address">Który adres?</string>
+    <string name="label_call_to">Zadzwoń: %1$s</string>
+    <string name="label_message_to">Wiadomość: %1$s</string>
+    <string name="label_email_to">E-mail: %1$s</string>
+    <string name="label_remember_default">Zapamiętaj jako domyślny</string>
+    <string name="msg_contact_gone">Tego kontaktu już nie ma.</string>
+    <string name="button_back_to_list">Wróć do listy</string>
+    <string name="content_description_photo">Zdjęcie: %1$s</string>
+    <string name="error_star_failed">Nie udało się zmienić ulubionych.</string>
+    <string name="error_no_app">Brak aplikacji do tej czynności (%1$s).</string>
+
+    <!-- Types of values -->
+    <string name="label_type_phone_mobile">Komórka</string>
+    <string name="label_type_phone_home">Dom</string>
+    <string name="label_type_phone_work">Praca</string>
+    <string name="label_type_phone_work_fax">Faks w pracy</string>
+    <string name="label_type_phone_home_fax">Faks w domu</string>
+    <string name="label_type_phone_pager">Pager</string>
+    <string name="label_type_phone_main">Główny</string>
+    <string name="label_type_phone_other">Inny</string>
+    <string name="label_type_email_personal">Prywatny</string>
+    <string name="label_type_email_work">Praca</string>
+    <string name="label_type_email_other">Inny</string>
+    <string name="label_type_address_home">Dom</string>
+    <string name="label_type_address_work">Praca</string>
+    <string name="label_type_address_other">Inny</string>
+    <string name="label_type_website_homepage">Strona</string>
+    <string name="label_type_website_blog">Blog</string>
+    <string name="label_type_website_work">Praca</string>
+    <string name="label_type_website_other">Inna</string>
+    <string name="label_type_date_birthday">Urodziny</string>
+    <string name="label_type_date_anniversary">Rocznica</string>
+    <string name="label_type_date_other">Inna</string>
+    <string name="label_type_sip_home">Dom</string>
+    <string name="label_type_sip_work">Praca</string>
+    <string name="label_type_sip_other">Inny</string>
+    <string name="label_type_relation_spouse">Małżonek</string>
+    <string name="label_type_relation_partner">Partner</string>
+    <string name="label_type_relation_child">Dziecko</string>
+    <string name="label_type_relation_parent">Rodzic</string>
+    <string name="label_type_relation_mother">Matka</string>
+    <string name="label_type_relation_father">Ojciec</string>
+    <string name="label_type_relation_brother">Brat</string>
+    <string name="label_type_relation_sister">Siostra</string>
+    <string name="label_type_relation_friend">Przyjaciel</string>
+    <string name="label_type_relation_relative">Krewny</string>
+    <string name="label_type_relation_assistant">Asystent</string>
+    <string name="label_type_relation_manager">Przełożony</string>
+    <string name="label_type_relation_domestic_partner">Partner życiowy</string>
+    <string name="label_type_relation_referred_by">Polecony przez</string>
+
     <!-- First run -->
     <string name="label_step">Krok %1$d z %2$d</string>
     <string name="msg_wizard_access">Aplikacja pokazuje i zmienia kontakty zapisane w systemie. Potrzebuje do tego dostępu do kontaktów.</string>

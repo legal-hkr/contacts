@@ -50,6 +50,12 @@ class ContactListTest {
     }
 
     @Test
+    fun favoritesAreTheStarredOnesInTheListsOrder() {
+        val rows = listOf(row(1, "Zofia").copy(starred = true), row(2, "Adam"), row(3, "Łucja").copy(starred = true), row(4, "Lena").copy(starred = true))
+        assertEquals(listOf("Lena", "Łucja", "Zofia"), ContactList.favorites(rows, pl).map { it.name })
+    }
+
+    @Test
     fun initialsKeepTheirMarks() {
         assertEquals("Ś", Avatars.initial("świątek", pl))
         assertEquals("#", Avatars.initial("+48 601", pl))

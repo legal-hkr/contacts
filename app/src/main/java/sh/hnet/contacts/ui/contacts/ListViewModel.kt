@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.model.ContactList
+import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.ListEntry
+import sh.hnet.contacts.model.favorites
 
 /** The list's states (SPEC §4.8). */
 sealed interface ListState {
@@ -31,7 +33,7 @@ sealed interface ListState {
     /** Contacts exist ([total]), but every account that has them is hidden. */
     data class AllHidden(val total: Int) : ListState
 
-    data class Ready(val entries: List<ListEntry>, val companyLine: Boolean) : ListState
+    data class Ready(val entries: List<ListEntry>, val favorites: List<ContactRow>, val companyLine: Boolean) : ListState
 }
 
 /**
@@ -59,7 +61,7 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
                 when {
                     loaded.total == 0 -> ListState.NoContacts
                     loaded.contacts.isEmpty() -> ListState.AllHidden(loaded.total)
-                    else -> ListState.Ready(ContactList.build(loaded.contacts, locale), settings.companyLine)
+                    else -> ListState.Ready(ContactList.build(loaded.contacts, locale), ContactList.favorites(loaded.contacts, locale), settings.companyLine)
                 }
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ListState.Loading)

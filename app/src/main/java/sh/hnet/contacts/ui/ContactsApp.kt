@@ -41,18 +41,19 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import sh.hnet.contacts.R
 import sh.hnet.contacts.about.WhatsNew
-import sh.hnet.contacts.ui.contacts.ContactsScreen
 import sh.hnet.contacts.ui.components.ContactsAccess
+import sh.hnet.contacts.ui.contact.ContactScreen
+import sh.hnet.contacts.ui.contacts.ContactsScreen
 import sh.hnet.contacts.ui.settings.AboutScreen
-import sh.hnet.contacts.ui.settings.BackupScreen
-import sh.hnet.contacts.ui.settings.ListSettingsScreen
-import sh.hnet.contacts.ui.welcome.WizardScreen
 import sh.hnet.contacts.ui.settings.AppLicenseScreen
+import sh.hnet.contacts.ui.settings.BackupScreen
 import sh.hnet.contacts.ui.settings.LanguageScreen
 import sh.hnet.contacts.ui.settings.LicensesScreen
+import sh.hnet.contacts.ui.settings.ListSettingsScreen
 import sh.hnet.contacts.ui.settings.ResetScreen
 import sh.hnet.contacts.ui.settings.SettingsRootScreen
 import sh.hnet.contacts.ui.settings.WhatsNewScreen
+import sh.hnet.contacts.ui.welcome.WizardScreen
 
 /**
  * The app's shell: one back stack with the contact list at its root; Settings and everything else
@@ -109,7 +110,10 @@ fun ContactsApp() {
                         (slideOutHorizontally(spatial) { shift } + fadeOut(fastEffects))
                 },
                 entryProvider = entryProvider<NavKey> {
-                    entry<Screen.Contacts> { ContactsScreen(onOpenSettings = { open(Screen.Settings) }) }
+                    entry<Screen.Contacts> { ContactsScreen(onOpenSettings = { open(Screen.Settings) }, onOpenContact = { open(Screen.Contact(it.lookupKey, it.id)) }) }
+                    entry<Screen.Contact> { contact ->
+                        ContactScreen(contact.lookupKey, contact.id, snackbars, messages, onBack = back, onOpenContact = { id, key -> open(Screen.Contact(key, id)) })
+                    }
                     entry<Screen.Settings> {
                         SettingsRootScreen(
                             onBack = back,

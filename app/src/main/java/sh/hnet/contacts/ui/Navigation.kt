@@ -7,6 +7,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface Screen : NavKey {
     @Serializable data object Contacts : Screen
+    /** A contact's page, by its lookup key (which survives syncs and joins) and the id it had when opened. */
+    @Serializable data class Contact(val lookupKey: String, val id: Long) : Screen
     @Serializable data object Settings : Screen
     @Serializable data object SettingsList : Screen
     @Serializable data object SettingsBackup : Screen

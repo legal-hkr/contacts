@@ -1,6 +1,7 @@
 package sh.hnet.contacts.model
 
 import java.text.BreakIterator
+import java.text.CollationKey
 import java.text.Collator
 import java.text.Normalizer
 import java.util.Locale
@@ -35,6 +36,7 @@ data class ListSettings(val sortByLast: Boolean = false, val lastFirst: Boolean 
  * @param sortName The name the list is sorted and filed by, in the order of [ListSettings.sortByLast]
  * @param photo The storage's thumbnail address, or null for the letter avatar
  * @param company "company, title", or whichever of the two exists; null when the setting is off or there is none
+ * @param shortName What the favorites row shows under the avatar (SPEC §4.3): the nickname, else the given name; null for other contacts or when neither exists
  */
 data class ContactRow(
     val id: Long,
@@ -44,6 +46,7 @@ data class ContactRow(
     val photo: String?,
     val starred: Boolean,
     val company: String? = null,
+    val shortName: String? = null,
 )
 
 /** What the list draws: a letter's header, then its contacts. */
@@ -93,7 +96,7 @@ object ContactList {
     fun build(contacts: List<ContactRow>, locale: Locale): List<ListEntry> {
         val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
         val keyed = contacts.map { Triple(it, letter(it.sortName, locale), collator.getCollationKey(it.sortName.trim())) }
-        val sorted = keyed.sortedWith(compareBy<Triple<ContactRow, String, java.text.CollationKey>> { it.second == OTHER }.thenBy { it.third }.thenBy { it.first.id })
+        val sorted = keyed.sortedWith(compareBy<Triple<ContactRow, String, CollationKey>> { it.second == OTHER }.thenBy { it.third }.thenBy { it.first.id })
         val entries = ArrayList<ListEntry>(sorted.size + 40)
         var current: String? = null
         for ((contact, letter, _) in sorted) {
@@ -105,6 +108,12 @@ object ContactList {
         }
         return entries
     }
+}
+
+/** The favorites row (SPEC §4.3): the starred contacts in the list's order. */
+fun ContactList.favorites(contacts: List<ContactRow>, locale: Locale): List<ContactRow> {
+    val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
+    return contacts.filter { it.starred }.sortedWith(compareBy<ContactRow, String>(collator) { it.sortName.trim() }.thenBy { it.id })
 }
 
 object Avatars {

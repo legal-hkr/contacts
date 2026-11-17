@@ -1,5 +1,6 @@
 package sh.hnet.contacts.about
 
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -7,7 +8,6 @@ import org.junit.Test
 import sh.hnet.contacts.BuildConfig
 import sh.hnet.contacts.about.Changelog.Block.Item
 import sh.hnet.contacts.about.Changelog.Block.Paragraph
-import java.io.File
 
 class ChangelogTest {
 

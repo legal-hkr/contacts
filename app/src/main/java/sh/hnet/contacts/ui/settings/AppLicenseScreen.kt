@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import sh.hnet.contacts.R
-import sh.hnet.contacts.ui.components.SettingsPage
 import sh.hnet.contacts.about.LicenseText
+import sh.hnet.contacts.ui.components.SettingsPage
 
 /**
  * The app's license, GPL-3.0, as the FSF publishes it (its standalone page in the assets, always in English: only the

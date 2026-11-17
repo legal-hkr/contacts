@@ -22,6 +22,75 @@
     <string name="msg_all_hidden">All accounts are hidden.</string>
     <string name="desc_all_hidden">Contacts in the system: %1$s. No account is shown in the list.</string>
 
+    <!-- List: favorites -->
+    <string name="label_favorites">Favorites</string>
+    <string name="tooltip_star">Add to favorites</string>
+    <string name="tooltip_unstar">Remove from favorites</string>
+
+    <!-- Contact page -->
+    <string name="tooltip_call">Call</string>
+    <string name="tooltip_message">Message</string>
+    <string name="tooltip_email">Email</string>
+    <string name="tooltip_map">Map</string>
+    <string name="label_default_suffix">%1$s, default</string>
+    <string name="label_website">Website</string>
+    <string name="msg_no_maps_app">No maps app. The address was copied.</string>
+    <string name="title_sources">Sources</string>
+    <string name="label_local_contacts">Local contacts</string>
+    <string name="label_read_only_suffix">%1$s, read-only</string>
+    <string name="msg_read_only_contact">This contact comes from a read-only account (%1$s). It can be changed or deleted only in %2$s.</string>
+    <string name="title_which_number">Which number?</string>
+    <string name="title_which_address">Which address?</string>
+    <string name="label_call_to">Call: %1$s</string>
+    <string name="label_message_to">Message: %1$s</string>
+    <string name="label_email_to">Email: %1$s</string>
+    <string name="label_remember_default">Remember as default</string>
+    <string name="msg_contact_gone">This contact no longer exists.</string>
+    <string name="button_back_to_list">Back to the list</string>
+    <string name="content_description_photo">Photo: %1$s</string>
+    <string name="error_star_failed">The favorite couldn’t be changed.</string>
+    <string name="error_no_app">No app for this action (%1$s).</string>
+
+    <!-- Types of values -->
+    <string name="label_type_phone_mobile">Mobile</string>
+    <string name="label_type_phone_home">Home</string>
+    <string name="label_type_phone_work">Work</string>
+    <string name="label_type_phone_work_fax">Work fax</string>
+    <string name="label_type_phone_home_fax">Home fax</string>
+    <string name="label_type_phone_pager">Pager</string>
+    <string name="label_type_phone_main">Main</string>
+    <string name="label_type_phone_other">Other</string>
+    <string name="label_type_email_personal">Personal</string>
+    <string name="label_type_email_work">Work</string>
+    <string name="label_type_email_other">Other</string>
+    <string name="label_type_address_home">Home</string>
+    <string name="label_type_address_work">Work</string>
+    <string name="label_type_address_other">Other</string>
+    <string name="label_type_website_homepage">Website</string>
+    <string name="label_type_website_blog">Blog</string>
+    <string name="label_type_website_work">Work</string>
+    <string name="label_type_website_other">Other</string>
+    <string name="label_type_date_birthday">Birthday</string>
+    <string name="label_type_date_anniversary">Anniversary</string>
+    <string name="label_type_date_other">Other</string>
+    <string name="label_type_sip_home">Home</string>
+    <string name="label_type_sip_work">Work</string>
+    <string name="label_type_sip_other">Other</string>
+    <string name="label_type_relation_spouse">Spouse</string>
+    <string name="label_type_relation_partner">Partner</string>
+    <string name="label_type_relation_child">Child</string>
+    <string name="label_type_relation_parent">Parent</string>
+    <string name="label_type_relation_mother">Mother</string>
+    <string name="label_type_relation_father">Father</string>
+    <string name="label_type_relation_brother">Brother</string>
+    <string name="label_type_relation_sister">Sister</string>
+    <string name="label_type_relation_friend">Friend</string>
+    <string name="label_type_relation_relative">Relative</string>
+    <string name="label_type_relation_assistant">Assistant</string>
+    <string name="label_type_relation_manager">Manager</string>
+    <string name="label_type_relation_domestic_partner">Domestic partner</string>
+    <string name="label_type_relation_referred_by">Referred by</string>
+
     <!-- First run -->
     <string name="label_step">Step %1$d of %2$d</string>
     <string name="msg_wizard_access">The app shows and changes the contacts saved in the system. It needs access to contacts for that.</string>
