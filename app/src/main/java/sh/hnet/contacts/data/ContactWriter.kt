@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import sh.hnet.contacts.model.AccountKey
+import sh.hnet.contacts.model.CardContact
+import sh.hnet.contacts.model.CardValue
 import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.EditorDiff
 import sh.hnet.contacts.model.FormValue
@@ -34,6 +36,12 @@ data class EditSnapshot(val contactId: Long, val lookupKey: String, val entries:
     /** New values go here (SPEC §7.6): the first writable entry, in the order the page lists them. */
     val target: EditEntry? get() = entries.firstOrNull { !it.readOnly }
 }
+
+/**
+ * What a delete takes away: the [contacts] that have writable entries, the [rawContactIds] of those
+ * entries, and how many of the asked contacts are only in read-only accounts and stay ([skipped]).
+ */
+data class Deletion(val contacts: Set<Long>, val rawContactIds: List<Long>, val skipped: Int)
 
 /** What the editor does with the photo on Save. */
 sealed interface PhotoChange {
@@ -96,16 +104,43 @@ class ContactWriter(private val context: Context, private val source: ContactSou
     /** The contact a lookup key points to now, ready for the form; null when it is gone. */
     suspend fun load(lookupKey: String, id: Long): EditSnapshot? = withContext(Dispatchers.IO) {
         val uri = ContactsContract.Contacts.lookupContact(resolver, ContactsContract.Contacts.getLookupUri(id, lookupKey)) ?: return@withContext null
+        read(uri, lookupKey)
+    }
+
+    /**
+     * The contacts [ids] as vCard contacts (SPEC §11.4): the values of all their entries, equal ones
+     * once, and the photo in its full size. Contacts gone meanwhile are left out.
+     */
+    suspend fun cards(ids: List<Long>): List<CardContact> = withContext(Dispatchers.IO) {
+        ids.mapNotNull { id ->
+            val uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id)
+            val read = read(uri, "") ?: return@mapNotNull null
+            val name = resolver.query(uri, arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }.orEmpty()
+            val photo = try {
+                ContactsContract.Contacts.openContactPhotoInputStream(resolver, uri, true)?.use { it.readBytes() }
+            } catch (_: Exception) {
+                null
+            }
+            CardContact(
+                displayName = name,
+                name = read.values.firstOrNull { it.kind == EditKind.NAME }?.parts.orEmpty(),
+                values = read.values.filter { it.kind != EditKind.NAME }.groupBy { it.kind }.mapValues { (_, values) -> values.map { CardValue(it.parts, it.type, it.label, it.isDefault, it.protocol) } },
+                photo = photo,
+            )
+        }
+    }
+
+    private fun read(uri: Uri, lookupKey: String): EditSnapshot? {
         val contactId = ContentUris.parseId(uri)
         var key = lookupKey
         var photo: String? = null
         var nameSource = 0L
         resolver.query(uri, arrayOf(ContactsContract.Contacts.LOOKUP_KEY, ContactsContract.Contacts.PHOTO_URI, ContactsContract.Contacts.NAME_RAW_CONTACT_ID, ContactsContract.Contacts.PHOTO_FILE_ID, ContactsContract.Contacts.PHOTO_ID), null, null, null)?.use { cursor ->
-            if (!cursor.moveToFirst()) return@withContext null
+            if (!cursor.moveToFirst()) return null
             key = cursor.getString(0) ?: lookupKey
             photo = source.photoAddress(cursor.getString(1), cursor.getString(3), cursor.getString(4))
             nameSource = cursor.getLong(2)
-        } ?: return@withContext null
+        } ?: return null
         val adapters = source.contactsAdapters()
         val entries = ArrayList<EditEntry>()
         resolver.query(
@@ -166,7 +201,7 @@ class ContactWriter(private val context: Context, private val source: ContactSou
                 readOnly = rows.all { it.second in readOnlyEntries },
             )
         }
-        EditSnapshot(contactId, key, entries, values, photo)
+        return EditSnapshot(contactId, key, entries, values, photo)
     }
 
     private fun groupKey(value: FormValue, region: String): String {
@@ -258,6 +293,38 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             // OperationApplicationException, RemoteException, SecurityException: the batch didn't happen, nothing was saved
             null
         }
+    }
+
+    /**
+     * What deleting the contacts [ids] takes away (SPEC §6.8): the entries in writable accounts.
+     * Entries of read-only accounts stay; a contact only in read-only accounts isn't deleted at all.
+     */
+    suspend fun deletion(ids: Collection<Long>): Deletion = withContext(Dispatchers.IO) {
+        val adapters = source.contactsAdapters()
+        val writable = HashMap<Long, MutableList<Long>>()
+        val all = HashSet<Long>()
+        if (ids.isNotEmpty()) {
+            resolver.query(
+                ContactsContract.RawContacts.CONTENT_URI,
+                arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME),
+                "${ContactsContract.RawContacts.CONTACT_ID} IN (${ids.joinToString(",")}) AND ${ContactsContract.RawContacts.DELETED} = 0", null, null,
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val contact = cursor.getLong(1)
+                    all += contact
+                    val account = AccountKey(cursor.getString(2).orEmpty(), cursor.getString(3).orEmpty())
+                    if (source.isLocal(account) || adapters[account.type] == true) writable.getOrPut(contact) { ArrayList() } += cursor.getLong(0)
+                }
+            }
+        }
+        Deletion(writable.keys.toSet(), writable.values.flatten(), (all - writable.keys).size)
+    }
+
+    /** Deletes the entries [rawContactIds] the way any app does, so the accounts' apps send the deletion to their servers. */
+    suspend fun delete(rawContactIds: List<Long>) = withContext(Dispatchers.IO) {
+        if (rawContactIds.isEmpty()) return@withContext
+        val operations = ArrayList(rawContactIds.map { ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, it)).build() })
+        resolver.applyBatch(ContactsContract.AUTHORITY, operations)
     }
 
     /** Of [dataIds], those no longer in the storage. */

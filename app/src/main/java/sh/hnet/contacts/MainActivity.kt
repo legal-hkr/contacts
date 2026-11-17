@@ -39,6 +39,12 @@ class MainActivity : ComponentActivity() {
         insert(intent)?.let { asked = it.copy(external = false) }
     }
 
+    /** The app leaves the screen: a delete still offering Undo is carried out, as nobody is left to undo it (as in Calendar). */
+    override fun onStop() {
+        super.onStop()
+        (application as ContactsApplication).deletes.commit()
+    }
+
     /** "Create contact" from another app (SPEC §3.4): the editor for a new contact with the number, e-mail and name handed over. */
     private fun insert(intent: Intent?): Screen.Editor? {
         if (intent?.action != Intent.ACTION_INSERT) return null

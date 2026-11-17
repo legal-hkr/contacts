@@ -4,6 +4,9 @@ import android.app.Application
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -59,17 +62,24 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
         if (!granted) return@flatMapLatest flowOf(ListState.NoAccess)
         combine(app.contacts.changes.debounce(300).onStart { emit(Unit) }, app.preferences.listSettings, app.preferences.hiddenAccounts, locale) { _, settings, hidden, locale -> Triple(settings, hidden, locale) }
             .mapLatest { (settings, hidden, locale) ->
-                val loaded = try {
-                    app.contacts.contacts(settings, hidden)
+                try {
+                    app.contacts.contacts(settings, hidden) to (settings to locale)
                 } catch (_: SecurityException) {
                     // Access taken away while the app ran
                     access.value = false
-                    return@mapLatest ListState.NoAccess
+                    null
                 }
+            }
+            // Contacts being deleted leave the list at once, before the storage hears of it (SPEC §6.8)
+            .combine(app.deletes.hidden) { read, deleting ->
+                val (loaded, more) = read ?: return@combine ListState.NoAccess
+                val (settings, locale) = more
+                val contacts = if (deleting.isEmpty()) loaded.contacts else loaded.contacts.filter { it.id !in deleting }
                 when {
                     loaded.total == 0 -> ListState.NoContacts
-                    loaded.contacts.isEmpty() -> ListState.AllHidden(loaded.total)
-                    else -> ListState.Ready(ContactList.build(loaded.contacts, locale), ContactList.favorites(loaded.contacts, locale), settings.companyLine)
+                    contacts.isEmpty() && loaded.contacts.isEmpty() -> ListState.AllHidden(loaded.total)
+                    contacts.isEmpty() -> ListState.NoContacts
+                    else -> ListState.Ready(ContactList.build(contacts, locale), ContactList.favorites(contacts, locale), settings.companyLine)
                 }
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ListState.Loading)
@@ -82,6 +92,9 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
     fun setLocale(value: Locale) {
         locale.value = value
     }
+
+    /** The contacts selected for an action on all of them (SPEC §4.7). */
+    val selection = Selection()
 
     /** The search field's text (SPEC §5.1). */
     val searchField = TextFieldState()
@@ -146,7 +159,7 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** What the search shows (SPEC §5.3, §5.4); null while it is closed or reading. */
-    val search: StateFlow<SearchState?> = combine(index, query.debounce(150), searchAll) { contacts, text, all -> Triple(contacts, text, all) }
+    val search: StateFlow<SearchState?> = combine(index, query.debounce(150), searchAll, app.deletes.hidden) { all, text, everywhere, deleting -> Triple(all?.filter { it.row.id !in deleting }, text, everywhere) }
         .mapLatest { (contacts, text, all) ->
             contacts ?: return@mapLatest null
             val hiddenExist = contacts.any { !it.shown }
@@ -158,6 +171,29 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+}
+
+/**
+ * The selection (SPEC §4.7): the contacts chosen by long press and taps, by id. Empty when the
+ * list isn't selecting.
+ */
+class Selection {
+    var ids by mutableStateOf<Set<Long>>(emptySet())
+        private set
+
+    val active: Boolean get() = ids.isNotEmpty()
+
+    fun toggle(id: Long) {
+        ids = if (id in ids) ids - id else ids + id
+    }
+
+    fun set(all: Set<Long>) {
+        ids = all
+    }
+
+    fun clear() {
+        ids = emptySet()
+    }
 }
 
 /**

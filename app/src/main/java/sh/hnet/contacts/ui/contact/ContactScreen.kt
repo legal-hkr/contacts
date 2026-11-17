@@ -81,12 +81,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
+import sh.hnet.contacts.data.Deletion
+import sh.hnet.contacts.data.Sharing
 import sh.hnet.contacts.model.ContactDate
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.Detail
 import sh.hnet.contacts.model.DetailKind
 import sh.hnet.contacts.model.Source
 import sh.hnet.contacts.ui.components.Avatar
+import sh.hnet.contacts.ui.components.DestructiveButton
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.TooltipIconButton
 import sh.hnet.contacts.ui.components.groupShapes
@@ -107,6 +110,7 @@ fun ContactScreen(
     messageScope: CoroutineScope,
     onBack: () -> Unit,
     onEdit: (Long, String) -> Unit,
+    onDelete: (Deletion, String) -> Unit,
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
 ) {
@@ -149,7 +153,7 @@ fun ContactScreen(
             ContactState.Gone -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onBack) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch)
+            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete)
         }
     }
     // Edit (SPEC §6.1): a FAB as on the list; none for a contact only in read-only accounts
@@ -175,6 +179,7 @@ private fun ContactContent(
     messageScope: CoroutineScope,
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
+    onDelete: (Deletion, String) -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
@@ -260,6 +265,7 @@ private fun ContactContent(
                 }
             }
         }
+        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete) }
         item(key = "sources") { Sources(contact.sources) }
         // Room under the last group for the FAB
         item(key = "end") { Spacer(Modifier.height(88.dp)) }
@@ -432,6 +438,86 @@ private fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String, 
                 }
             }
         }
+    }
+}
+
+/**
+ * Actions (SPEC §6.7): Share as a vCard file, and Delete apart as the family's destructive button
+ * (the owner, 17 Nov 2026), with the accounts it takes the contact from under it; absent for a
+ * contact only in read-only accounts. Move, Join and the QR code join with their stages.
+ */
+@Composable
+private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messageScope: CoroutineScope, onDelete: (Deletion, String) -> Unit) {
+    val context = LocalContext.current
+    val app = context.applicationContext as ContactsApplication
+    val scope = rememberCoroutineScope()
+    val failed = stringResource(R.string.error_export_failed)
+    val fileName = Sharing.fileName(contact.name)
+    val writable = contact.sources.filter { !it.readOnly }
+    val readOnly = contact.sources.filter { it.readOnly }
+    val accountNames = writable.map { if (it.local) stringResource(R.string.label_this_phone) else it.account.name }
+    val deletedOne = stringResource(R.string.msg_contact_deleted, contact.name)
+    val deletedFrom = stringResource(R.string.msg_contact_deleted_accounts, contact.name, writable.size)
+    Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp)) {
+        Text(
+            stringResource(R.string.title_actions),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp).semantics { heading() },
+        )
+        SegmentedListItem(
+            onClick = {
+                messageScope.launch {
+                    try {
+                        Sharing.share(context, Sharing.write(context, app.writer.cards(listOf(contact.id)), fileName))
+                    } catch (_: Exception) {
+                        snackbars.showSnackbar(failed.format(fileName), duration = SnackbarDuration.Short)
+                    }
+                }
+            },
+            shapes = groupShapes(0, 1),
+            colors = settingsRowColors(),
+            leadingContent = { IconBox(R.drawable.ic_share) },
+            supportingContent = { Text(stringResource(R.string.desc_share_vcard)) },
+        ) {
+            Text(stringResource(R.string.menu_share))
+        }
+        if (writable.isNotEmpty()) {
+            val supporting = buildList {
+                when {
+                    contact.sources.size < 2 -> Unit
+                    writable.size == 2 -> add(stringResource(R.string.desc_delete_two, accountNames.joinToString(", ")))
+                    writable.size > 2 -> add(stringResource(R.string.desc_delete_many, writable.size, accountNames.joinToString(", ")))
+                }
+                when (readOnly.size) {
+                    0 -> Unit
+                    1 -> add(stringResource(R.string.desc_read_only_entry_stays, readOnly[0].app ?: readOnly[0].account.name))
+                    else -> add(stringResource(R.string.desc_read_only_entries_stay))
+                }
+            }.joinToString(" ")
+            // The family's single destructive action on a page: a full-width outlined button in the error color (as Music's and Calendar's)
+            DestructiveButton(
+                stringResource(R.string.menu_delete),
+                R.drawable.ic_delete,
+                onClick = {
+                    scope.launch {
+                        val deletion = app.writer.deletion(listOf(contact.id))
+                        if (deletion.contacts.isNotEmpty()) onDelete(deletion, if (deletion.rawContactIds.size > 1) deletedFrom else deletedOne)
+                    }
+                },
+                modifier = Modifier.padding(top = 16.dp),
+            )
+            if (supporting.isNotEmpty()) {
+                Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun IconBox(@DrawableRes icon: Int) {
+    Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+        Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
 

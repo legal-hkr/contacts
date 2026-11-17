@@ -35,6 +35,16 @@
                 <data android:mimeType="vnd.android.cursor.dir/raw_contact" />
             </intent-filter>
         </activity>
+        <!-- vCard files handed to other apps through Share (SPEC §11.4), from the app's cache only -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

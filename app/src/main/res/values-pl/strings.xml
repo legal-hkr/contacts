@@ -103,6 +103,36 @@
     <string name="label_default_account">Domyślne konto</string>
     <string name="title_default_account">Domyślne konto</string>
 
+    <!-- Delete, selection, share -->
+    <string name="title_actions">Działania</string>
+    <string name="menu_share">Udostępnij</string>
+    <string name="desc_share_vcard">Plik vCard</string>
+    <string name="menu_delete">Usuń</string>
+    <string name="desc_delete_two">Z obu kont: %1$s</string>
+    <string name="desc_delete_many">Ze wszystkich kont (%1$d): %2$s</string>
+    <string name="desc_read_only_entry_stays">Wpis z konta tylko do odczytu zostaje (%1$s).</string>
+    <string name="desc_read_only_entries_stay">Wpisy z kont tylko do odczytu zostają.</string>
+    <string name="msg_contact_deleted">Usunięto kontakt: %1$s</string>
+    <string name="msg_contact_deleted_accounts">Usunięto kontakt: %1$s (konta: %2$d)</string>
+    <string name="msg_contacts_deleted">Usunięto kontakty: %1$d</string>
+    <string name="button_undo">Cofnij</string>
+    <string name="title_delete_contacts">Usunąć kontakty (%1$d)?</string>
+    <string name="msg_delete_contacts">Kontakty znikną ze wszystkich kont, na których są zapisane.</string>
+    <string name="msg_delete_skips_read_only">Kontakty tylko do odczytu (%1$d) zostaną pominięte.</string>
+    <string name="button_delete">Usuń</string>
+    <string name="title_selected">Zaznaczone: %1$d</string>
+    <string name="content_description_close_selection">Zamknij zaznaczanie</string>
+    <string name="content_description_select_all">Zaznacz wszystkie</string>
+    <string name="tooltip_share">Udostępnij</string>
+    <string name="msg_starred">Dodano do ulubionych: %1$d</string>
+    <string name="msg_unstarred">Usunięto z ulubionych: %1$d</string>
+    <string name="tooltip_save_as_file">Zapisz jako plik</string>
+    <string name="tooltip_delete">Usuń</string>
+    <string name="desc_read_only_contacts">Kontakty tylko do odczytu</string>
+    <string name="label_export_filename">kontakty-%1$s.vcf</string>
+    <string name="msg_exported">Zapisano kontakty: %1$s (%2$s)</string>
+    <string name="error_export_failed">Nie udało się zapisać pliku (%1$s).</string>
+
     <!-- Search -->
     <string name="content_description_search">Szukaj</string>
     <string name="hint_search">Szukaj kontaktów</string>

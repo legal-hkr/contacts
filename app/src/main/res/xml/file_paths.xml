@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the folder of files being shared (SPEC §11.4); nothing else of the app is reachable -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

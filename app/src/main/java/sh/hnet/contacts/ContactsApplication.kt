@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 import sh.hnet.contacts.backup.BackupManager
 import sh.hnet.contacts.data.ContactSource
 import sh.hnet.contacts.data.ContactWriter
+import sh.hnet.contacts.data.DeleteQueue
+import sh.hnet.contacts.data.Sharing
 import sh.hnet.contacts.model.ContactDetails
 
 class ContactsApplication : Application() {
@@ -27,6 +29,9 @@ class ContactsApplication : Application() {
 
     /** The editor's reads and writes. */
     val writer: ContactWriter by lazy { ContactWriter(this, contacts) }
+
+    /** Deletes waiting for their Undo snackbar to go. */
+    val deletes: DeleteQueue by lazy { DeleteQueue(appScope, writer) }
 
     /** A name the list is asked to search for, taken once (a relation on a contact page that names no one contact, SPEC §6.4). */
     val pendingSearch = MutableStateFlow<String?>(null)
@@ -83,6 +88,10 @@ class ContactsApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // The account apps and sync adapters, read while the list loads rather than when the first contact opens
-        appScope.launch(Dispatchers.IO) { contacts.warmUp() }
+        appScope.launch(Dispatchers.IO) {
+            contacts.warmUp()
+            // Files handed to other apps last time (SPEC §11.4): they had their moment
+            Sharing.clear(this@ContactsApplication)
+        }
     }
 }

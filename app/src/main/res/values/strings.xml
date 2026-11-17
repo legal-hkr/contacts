@@ -107,6 +107,36 @@
     <string name="label_default_account">Default account</string>
     <string name="title_default_account">Default account</string>
 
+    <!-- Delete, selection, share -->
+    <string name="title_actions">Actions</string>
+    <string name="menu_share">Share</string>
+    <string name="desc_share_vcard">vCard file</string>
+    <string name="menu_delete">Delete</string>
+    <string name="desc_delete_two">From both accounts: %1$s</string>
+    <string name="desc_delete_many">From all accounts (%1$d): %2$s</string>
+    <string name="desc_read_only_entry_stays">The entry from the read-only account stays (%1$s).</string>
+    <string name="desc_read_only_entries_stay">Entries from read-only accounts stay.</string>
+    <string name="msg_contact_deleted">Contact deleted: %1$s</string>
+    <string name="msg_contact_deleted_accounts">Contact deleted: %1$s (accounts: %2$d)</string>
+    <string name="msg_contacts_deleted">Contacts deleted: %1$d</string>
+    <string name="button_undo">Undo</string>
+    <string name="title_delete_contacts">Delete contacts (%1$d)?</string>
+    <string name="msg_delete_contacts">The contacts will disappear from every account they are saved in.</string>
+    <string name="msg_delete_skips_read_only">Read-only contacts (%1$d) will be skipped.</string>
+    <string name="button_delete">Delete</string>
+    <string name="title_selected">Selected: %1$d</string>
+    <string name="content_description_close_selection">Close selection</string>
+    <string name="content_description_select_all">Select all</string>
+    <string name="tooltip_share">Share</string>
+    <string name="msg_starred">Added to favorites: %1$d</string>
+    <string name="msg_unstarred">Removed from favorites: %1$d</string>
+    <string name="tooltip_save_as_file">Save as file</string>
+    <string name="tooltip_delete">Delete</string>
+    <string name="desc_read_only_contacts">Read-only contacts</string>
+    <string name="label_export_filename">contacts-%1$s.vcf</string>
+    <string name="msg_exported">Contacts saved: %1$s (%2$s)</string>
+    <string name="error_export_failed">The file couldn’t be saved (%1$s).</string>
+
     <!-- Search -->
     <string name="content_description_search">Search</string>
     <string name="hint_search">Search contacts</string>

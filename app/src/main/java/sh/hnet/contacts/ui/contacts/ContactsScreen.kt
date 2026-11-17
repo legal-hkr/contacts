@@ -7,7 +7,8 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,14 +28,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -60,14 +64,17 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
+import sh.hnet.contacts.data.Deletion
 import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.ListEntry
 import sh.hnet.contacts.ui.components.Avatar
@@ -84,7 +91,15 @@ import sh.hnet.contacts.ui.components.rememberContactsAccessAsk
  * field in the bar and its results in place of the list (SPEC §5). The FAB comes with the editor.
  */
 @Composable
-fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Unit, onNewContact: () -> Unit, viewModel: ListViewModel = viewModel()) {
+fun ContactsScreen(
+    onOpenSettings: () -> Unit,
+    onOpenContact: (ContactRow) -> Unit,
+    onNewContact: () -> Unit,
+    onDelete: (Deletion, String) -> Unit,
+    snackbars: SnackbarHostState,
+    messageScope: CoroutineScope,
+    viewModel: ListViewModel = viewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0]
     LaunchedEffect(locale) { viewModel.setLocale(locale) }
@@ -95,8 +110,14 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
     val searching by viewModel.searching.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
-    // Back closes the search first (SPEC §3.3)
-    BackHandler(enabled = searching) { viewModel.closeSearch() }
+    val selection = viewModel.selection
+    // Back ends a selection, then closes the search (SPEC §3.3)
+    BackHandler(enabled = searching && !selection.active) { viewModel.closeSearch() }
+    BackHandler(enabled = selection.active) { selection.clear() }
+    // The rows on the list now, for the selection's actions
+    val rows = (state as? ListState.Ready)?.entries.orEmpty().mapNotNull { (it as? ListEntry.Contact)?.contact }
+    // A contact deleted or gone meanwhile drops out of the selection
+    LaunchedEffect(rows) { if (selection.active) selection.set(selection.ids.filter { id -> rows.any { it.id == id } }.toSet()) }
     // Search only where there is something to search: not without access or contacts (SPEC §4.8)
     val searchable = state !is ListState.NoAccess && state !is ListState.NoContacts
     // The FAB hides while the list scrolls down and comes back when it scrolls up (SPEC §4.10)
@@ -109,10 +130,14 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
             }
         }
     }
-    val fab = !searching && (state is ListState.Loading || state is ListState.AllHidden || state is ListState.Ready)
+    val fab = !searching && !selection.active && (state is ListState.Loading || state is ListState.AllHidden || state is ListState.Ready)
     Box(Modifier.fillMaxSize().nestedScroll(fabScroll)) {
     Column(Modifier.fillMaxSize()) {
-        if (searching) {
+        if (selection.active) {
+            SelectionBar(selection.ids.size, allSelected = selection.ids.size == rows.size, onClose = selection::clear, onSelectAll = {
+                if (selection.ids.size == rows.size) selection.clear() else selection.set(rows.map { it.id }.toSet())
+            })
+        } else if (searching) {
             SearchField(viewModel.searchField, query, onClose = viewModel::closeSearch, onClear = viewModel::clearQuery)
         } else {
             TopAppBar(
@@ -141,7 +166,7 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
                 stringResource(R.string.msg_all_hidden),
                 stringResource(R.string.desc_all_hidden, NumberFormat.getIntegerInstance(locale).format(current.total)),
             )
-            is ListState.Ready -> ContactList(current, onOpenContact)
+            is ListState.Ready -> ContactList(current, selection, onOpenContact)
         }
     }
         AnimatedVisibility(
@@ -153,6 +178,14 @@ fun ContactsScreen(onOpenSettings: () -> Unit, onOpenContact: (ContactRow) -> Un
             FloatingActionButton(onClick = onNewContact, containerColor = MaterialTheme.colorScheme.primaryContainer) {
                 Icon(painterResource(R.drawable.ic_person_add), contentDescription = stringResource(R.string.content_description_new_contact))
             }
+        }
+        if (selection.active) {
+            SelectionToolbar(
+                rows.filter { it.id in selection.ids }, snackbars, messageScope,
+                onDone = selection::clear,
+                onDelete = onDelete,
+                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp),
+            )
         }
     }
 }
@@ -203,6 +236,14 @@ private fun NoAccess(onAnswer: () -> Unit) {
     }
 }
 
+/** A selected row's avatar (SPEC §4.7): a primary circle with a check. */
+@Composable
+private fun SelectedMark(size: Dp) {
+    Box(Modifier.size(size).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
+        Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+    }
+}
+
 /** The favorites row's place in the fast scroller's index (SPEC §4.6). */
 private const val STAR = "★"
 
@@ -212,7 +253,7 @@ private const val STAR = "★"
  * scroller with the letter index on the end edge.
  */
 @Composable
-private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> Unit) {
+private fun ContactList(state: ListState.Ready, selection: Selection, onOpenContact: (ContactRow) -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     val listState = rememberLazyListState()
     val favorites = state.favorites.isNotEmpty()
@@ -238,10 +279,12 @@ private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> U
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = WindowInsets.navigationBars.asPaddingValues(),
+            // Room for the selection's toolbar under the last row
+            contentPadding = PaddingValues(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + if (selection.active) 88.dp else 0.dp),
         ) {
-            if (favorites) {
-                item(key = "favorites", contentType = "favorites") { Favorites(state.favorites, onOpenContact) }
+            // Favorites leave the list while selecting (SPEC §4.7)
+            if (favorites && !selection.active) {
+                item(key = "favorites", contentType = "favorites") { Favorites(state.favorites, onOpenContact, onSelect = selection::toggle) }
             }
             items(state.entries, key = { it.key }, contentType = { it::class }) { entry ->
                 when (entry) {
@@ -254,10 +297,14 @@ private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> U
                     is ListEntry.Contact -> {
                         val contact = entry.contact
                         val company = contact.company.takeIf { state.companyLine }
+                        val selected = contact.id in selection.ids
                         ListItem(
-                            onClick = { onOpenContact(contact) },
-                            modifier = Modifier.onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
-                            leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp) },
+                            // Selecting: a tap toggles the row; otherwise it opens the contact, and a long press starts the selection
+                            onClick = { if (selection.active) selection.toggle(contact.id) else onOpenContact(contact) },
+                            onLongClick = { selection.toggle(contact.id) },
+                            modifier = Modifier.onTouchDown(contact.id, onPress = { if (!selection.active) app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
+                            colors = ListItemDefaults.colors(containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface),
+                            leadingContent = { if (selected) SelectedMark(40.dp) else Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp) },
                             supportingContent = company?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
                         ) {
                             Text(contact.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -278,7 +325,7 @@ private fun ContactList(state: ListState.Ready, onOpenContact: (ContactRow) -> U
  * scrolls sideways however many there are; a tap opens the contact.
  */
 @Composable
-private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -> Unit) {
+private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -> Unit, onSelect: (Long) -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     Column(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)) {
         Text(
@@ -295,7 +342,7 @@ private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -
                         .width(72.dp)
                         .clip(MaterialTheme.shapes.medium)
                         .onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch)
-                        .clickable { onOpenContact(contact) }
+                        .combinedClickable(onLongClick = { onSelect(contact.id) }) { onOpenContact(contact) }
                         .padding(vertical = 4.dp)
                         .semantics(mergeDescendants = true) { contentDescription = contact.name },
                 ) {

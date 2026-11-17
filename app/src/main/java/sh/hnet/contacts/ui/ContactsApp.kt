@@ -45,9 +45,12 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.about.WhatsNew
+import sh.hnet.contacts.data.Deletion
 import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
@@ -109,6 +112,26 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
         }
     }
 
+    val app = appContext as ContactsApplication
+    val undo = stringResource(R.string.button_undo)
+    // Contacts leave every view at once; the storage hears of it when the snackbar has gone (SPEC §6.8)
+    val deleteWithUndo: (Deletion, String) -> Unit = { deletion, message ->
+        app.deletes.delete(deletion)
+        messages.launch {
+            snackbars.currentSnackbarData?.dismiss()
+            // Carried out elsewhere meanwhile (the app left the screen, another delete): Undo has nothing left to offer
+            val watch = launch {
+                app.deletes.waiting.first { it != deletion }
+                snackbars.currentSnackbarData?.dismiss()
+            }
+            val result = snackbars.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Short)
+            watch.cancel()
+            if (app.deletes.waiting.value == deletion) {
+                if (result == SnackbarResult.ActionPerformed) app.deletes.undo() else app.deletes.commit()
+            }
+        }
+    }
+
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     val open: (Screen) -> Unit = { stack.add(it) }
 
@@ -139,6 +162,9 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onOpenSettings = { open(Screen.Settings) },
                             onOpenContact = { open(Screen.Contact(it.lookupKey, it.id, it.name, it.photo)) },
                             onNewContact = { open(Screen.Editor(null, 0, System.nanoTime())) },
+                            onDelete = deleteWithUndo,
+                            snackbars = snackbars,
+                            messageScope = messages,
                         )
                     }
                     entry<Screen.Editor> { editor ->
@@ -167,9 +193,14 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             contact.lookupKey, contact.id, contact.name, contact.photo, snackbars, messages,
                             onBack = back,
                             onEdit = { id, key -> open(Screen.Editor(key, id, System.nanoTime())) },
+                            onDelete = { deletion, message ->
+                                // The page closes, back to where it came from, and the contact leaves the list at once
+                                back()
+                                deleteWithUndo(deletion, message)
+                            },
                             onOpenContact = { id, key -> open(Screen.Contact(key, id)) },
                             onSearch = { name ->
-                                (appContext as ContactsApplication).pendingSearch.value = name
+                                app.pendingSearch.value = name
                                 while (stack.size > 1) stack.removeAt(stack.lastIndex)
                             },
                         )
