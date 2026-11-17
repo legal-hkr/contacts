@@ -275,8 +275,8 @@ private fun ContactContent(
                 }
             }
         }
-        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete, onMoved, onJoin) }
         item(key = "sources") { Sources(contact.sources) }
+        item(key = "actions-group") { Actions(contact, snackbars, messageScope, onDelete, onMoved, onJoin) }
         // Room under the last group for the FAB
         item(key = "end") { Spacer(Modifier.height(88.dp)) }
     }
