@@ -22,7 +22,12 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,7 +42,11 @@ import androidx.navigation3.ui.NavDisplay
 import sh.hnet.contacts.R
 import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.ui.contacts.ContactsScreen
+import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.settings.AboutScreen
+import sh.hnet.contacts.ui.settings.BackupScreen
+import sh.hnet.contacts.ui.settings.ListSettingsScreen
+import sh.hnet.contacts.ui.welcome.WizardScreen
 import sh.hnet.contacts.ui.settings.AppLicenseScreen
 import sh.hnet.contacts.ui.settings.LanguageScreen
 import sh.hnet.contacts.ui.settings.LicensesScreen
@@ -47,7 +56,7 @@ import sh.hnet.contacts.ui.settings.WhatsNewScreen
 
 /**
  * The app's shell: one back stack with the contact list at its root; Settings and everything else
- * open over it as pages, with Back. The structure of the modes comes with the UI handoff.
+ * open over it as pages, with Back. On the first start the wizard lies over it all (SPEC §12).
  */
 @Composable
 fun ContactsApp() {
@@ -75,6 +84,9 @@ fun ContactsApp() {
     val fastEffects: FiniteAnimationSpec<Float> = motion.fastEffectsSpec()
     val shift = with(LocalDensity.current) { 30.dp.roundToPx() }
 
+    val messages = rememberCoroutineScope()
+    var wizard by rememberSaveable { mutableStateOf(!ContactsAccess.wizardDone(appContext)) }
+
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     val open: (Screen) -> Unit = { stack.add(it) }
 
@@ -101,12 +113,16 @@ fun ContactsApp() {
                     entry<Screen.Settings> {
                         SettingsRootScreen(
                             onBack = back,
+                            onOpenList = { open(Screen.SettingsList) },
                             onOpenLanguage = { open(Screen.SettingsLanguage) },
+                            onOpenBackup = { open(Screen.SettingsBackup) },
                             onOpenReset = { open(Screen.SettingsReset) },
                             onOpenAbout = { open(Screen.SettingsAbout) },
                         )
                     }
+                    entry<Screen.SettingsList> { ListSettingsScreen(onBack = back) }
                     entry<Screen.SettingsLanguage> { LanguageScreen(onBack = back) }
+                    entry<Screen.SettingsBackup> { BackupScreen(onBack = back, snackbars = snackbars, messageScope = messages) }
                     entry<Screen.SettingsReset> { ResetScreen(onBack = back) }
                     entry<Screen.SettingsAbout> {
                         AboutScreen(
@@ -121,6 +137,13 @@ fun ContactsApp() {
                     entry<Screen.SettingsLicenses> { LicensesScreen(onBack = back) }
                 },
             )
+            // The first run (SPEC §12): the wizard lies over the list until it is done
+            if (wizard) {
+                WizardScreen(snackbars, messages, onDone = {
+                    ContactsAccess.markWizardDone(appContext)
+                    wizard = false
+                })
+            }
             // One host for every page, above the system's navigation area
             SnackbarHost(snackbars, Modifier.align(Alignment.BottomCenter).navigationBarsPadding()) { data ->
                 Snackbar(data, shape = MaterialTheme.shapes.extraLarge, modifier = Modifier.padding(horizontal = 12.dp))

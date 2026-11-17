@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 sealed interface Screen : NavKey {
     @Serializable data object Contacts : Screen
     @Serializable data object Settings : Screen
+    @Serializable data object SettingsList : Screen
+    @Serializable data object SettingsBackup : Screen
     @Serializable data object SettingsLanguage : Screen
     @Serializable data object SettingsReset : Screen
     @Serializable data object SettingsAbout : Screen

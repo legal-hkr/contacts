@@ -2,7 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- No permissions in the skeleton. What the app may ask for (contacts access, notifications, network) follows from the scope the owner decides on. -->
+    <!-- The contacts, read and written; nothing else, never the network (owner's decision, 16 Nov 2026; no READ_SYNC_SETTINGS, 17 Nov 2026). -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
     <application
         android:name=".ContactsApplication"

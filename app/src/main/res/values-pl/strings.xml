@@ -11,8 +11,77 @@
     <string name="msg_copied">Skopiowano</string>
     <string name="msg_no_browser">Brak aplikacji, która otworzy ten link</string>
 
-    <!-- Contacts -->
-    <string name="msg_in_development">W przygotowaniu.</string>
+    <!-- Contact list -->
+    <string name="title_contacts">Kontakty</string>
+    <string name="msg_no_permission">Bez dostępu do kontaktów nie ma tu nic do pokazania.</string>
+    <string name="desc_no_permission">Kontakty zostają w systemie i na kontach. Aplikacja tylko je pokazuje i zmienia.</string>
+    <string name="button_allow_access">Zezwól na dostęp</string>
+    <string name="button_open_app_settings">Otwórz ustawienia aplikacji</string>
+    <string name="msg_no_contacts">Nie ma tu jeszcze żadnych kontaktów.</string>
+    <string name="desc_no_contacts">Konta dodaje się w aplikacjach, które je synchronizują, na przykład DAVx⁵. Bez konta kontakty zostają na tym telefonie.</string>
+    <string name="msg_all_hidden">Wszystkie konta są ukryte.</string>
+    <string name="desc_all_hidden">Kontakty w systemie: %1$s. Żadne konto nie jest pokazywane na liście.</string>
+
+    <!-- First run -->
+    <string name="label_step">Krok %1$d z %2$d</string>
+    <string name="msg_wizard_access">Aplikacja pokazuje i zmienia kontakty zapisane w systemie. Potrzebuje do tego dostępu do kontaktów.</string>
+    <string name="label_no_internet">Bez Internetu</string>
+    <string name="desc_no_internet">Aplikacja nie łączy się z siecią.</string>
+    <string name="label_sync_by_others">Konta synchronizują inne aplikacje</string>
+    <string name="desc_sync_by_others">Na przykład DAVx⁵ z Nextcloud.</string>
+    <string name="button_not_now">Nie teraz</string>
+    <string name="msg_wizard_backup">Kopia zawiera ustawienia aplikacji. Kontakty są w systemie i na kontach, więc nie ma ich w kopii.</string>
+    <string name="button_next">Dalej</string>
+    <string name="label_start_fresh">Zacznij od nowa</string>
+    <string name="desc_start_fresh">Ustawienia domyślne.</string>
+    <string name="desc_restore_backup_wizard">Wybierz plik JSON zapisany w Ustawieniach.</string>
+    <string name="msg_wizard_accounts">Kontakty z tych kont są na liście. Można to zmienić później w Ustawieniach.</string>
+    <string name="msg_wizard_no_account">Nie ma jeszcze żadnego konta. Konta dodaje się w aplikacjach, które je synchronizują, na przykład DAVx⁵. Kontakty lokalne działają bez konta.</string>
+    <string name="desc_new_contacts_here">Nowe kontakty zostaną zapisane tutaj.</string>
+    <string name="msg_wizard_export_hint">Kontakty lokalne warto co jakiś czas eksportować do pliku vCard (Ustawienia › Eksport wszystkich kontaktów).</string>
+    <string name="button_done">Gotowe</string>
+
+    <!-- Accounts -->
+    <string name="title_accounts">Konta</string>
+    <string name="label_this_phone">Na tym telefonie</string>
+    <string name="label_account_count">%1$s, kontakty: %2$s</string>
+    <string name="label_account_empty">%1$s, brak kontaktów</string>
+    <string name="label_local_count">Kontakty lokalne: %1$s</string>
+    <string name="label_read_only">Tylko do odczytu</string>
+
+    <!-- Settings › List -->
+    <string name="label_settings_list">Lista</string>
+    <string name="desc_settings_list">Sortowanie, format nazw, firma</string>
+    <string name="label_sort_by">Sortuj według</string>
+    <string name="label_sort_first">Imienia</string>
+    <string name="label_sort_last">Nazwiska</string>
+    <string name="label_show_names">Pokazuj nazwy</string>
+    <string name="label_name_first_last">Jan Kowalski</string>
+    <string name="label_name_last_first">Kowalski, Jan</string>
+    <string name="label_company_line">Firma w drugim wierszu</string>
+    <string name="desc_company_line">Pod imieniem i nazwiskiem na liście</string>
+
+    <!-- Settings › Backup -->
+    <string name="title_backup">Kopia zapasowa</string>
+    <string name="desc_backup_row">Ustawienia w jednym pliku</string>
+    <string name="msg_backup_contents">Kopia zawiera ustawienia aplikacji i wybór kont pokazywanych na liście.</string>
+    <string name="msg_backup_no_contacts">Kontaktów nie ma w kopii. Są w systemie i na kontach, a poza nimi chroni je eksport do pliku vCard.</string>
+    <string name="label_create_backup">Utwórz kopię</string>
+    <string name="label_last_backup">Ostatnia kopia: %s</string>
+    <string name="label_no_backup">Nie utworzono jeszcze kopii</string>
+    <string name="label_saving_backup">Zapisywanie…</string>
+    <string name="label_restore_backup">Przywróć z kopii</string>
+    <string name="desc_restore_backup">Wybierz plik JSON</string>
+    <string name="msg_backup_saved"><![CDATA[Zapisano kopię jako <b>%s</b>]]></string>
+    <string name="error_backup_write"><![CDATA[Nie udało się zapisać pliku <b>%s</b>.]]></string>
+    <string name="error_backup_not_ours"><![CDATA[Plik <b>%s</b> nie jest kopią zapasową tej aplikacji.]]></string>
+    <string name="error_backup_newer">Tę kopię utworzyła nowsza wersja aplikacji. Zaktualizuj aplikację, żeby ją przywrócić.</string>
+    <string name="error_backup_unreadable"><![CDATA[Nie udało się odczytać pliku <b>%s</b>.]]></string>
+    <string name="title_restore_confirm">Przywrócić tę kopię?</string>
+    <string name="msg_restore_from"><![CDATA[<b>%1$s</b> – kopia z %2$s, wersja %3$s.]]></string>
+    <string name="msg_restore_summary">Obecne ustawienia i wybór pokazywanych kont zostaną zastąpione.</string>
+    <string name="msg_restored">Przywrócono ustawienia</string>
+    <string name="button_show">Pokaż</string>
 
     <!-- Settings -->
     <string name="title_settings">Ustawienia</string>
@@ -27,10 +96,10 @@
     <!-- Settings › Reset -->
     <string name="title_settings_reset">Resetowanie</string>
     <string name="desc_settings_reset_row">Kontakty zostają</string>
-    <string name="desc_settings_reset">Wszystkie ustawienia wrócą do domyślnych, a język będzie zgodny z systemem. Kontakty pozostaną bez zmian.</string>
+    <string name="desc_settings_reset">Wszystkie ustawienia wrócą do domyślnych, wszystkie konta będą znów pokazywane, a język będzie zgodny z systemem. Kontakty pozostaną bez zmian.</string>
     <string name="button_restore_defaults">Przywróć ustawienia domyślne</string>
     <string name="title_confirm_restore_defaults">Przywrócić ustawienia domyślne?</string>
-    <string name="msg_confirm_restore_defaults">Wszystkie ustawienia wrócą do domyślnych, a język będzie zgodny z systemem. Kontakty pozostaną bez zmian.</string>
+    <string name="msg_confirm_restore_defaults">Wszystkie ustawienia wrócą do domyślnych, wszystkie konta będą znów pokazywane, a język będzie zgodny z systemem. Kontakty pozostaną bez zmian.</string>
     <string name="msg_defaults_restored">Przywrócono ustawienia domyślne</string>
 
     <!-- Settings › About -->
@@ -50,5 +119,5 @@
     <string name="label_licenses">Licencje open source</string>
     <string name="desc_licenses">Składniki open source użyte w aplikacji</string>
     <string name="title_about_source">Kod źródłowy</string>
-    <string name="msg_about_privacy">Aplikacja nie ma dostępu do Internetu. Kontakty odczytuje i zapisuje tylko w telefonie, a synchronizacją zajmują się aplikacje kont. Bez konta, bez analityki, bez żadnych usług.</string>
+    <string name="msg_about_privacy">Aplikacja nie ma dostępu do Internetu. Kontakty przechowuje system, a synchronizują je aplikacje obsługujące konta.</string>
 </resources>
