@@ -155,12 +155,12 @@ object Widgets {
 
     private fun Bundle.height(): Int = getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT).takeIf { it > 0 } ?: 180
 
-    /** Favorites (§14.1): the title where it fits, then the rows; the last row's empty cells keep the columns in place. */
+    /** Favorites (§14.1): the header pill where it fits, then the rows; the last row's empty cells keep the columns in place. */
     private fun grid(context: Context, fit: FavoritesGrid.Fit, contacts: List<ContactRow>, photos: Map<String, Bitmap>, manyColors: Boolean, locale: Locale): RemoteViews =
         RemoteViews(context.packageName, R.layout.widget_favorites).apply {
-            setViewVisibility(R.id.title, if (fit.title) View.VISIBLE else View.GONE)
-            setTextViewText(R.id.title, context.getString(R.string.title_widget_favorites))
-            setOnClickPendingIntent(R.id.title, open(context, WidgetRequest.Open))
+            setViewVisibility(R.id.header, if (fit.title) View.VISIBLE else View.GONE)
+            setTextViewText(R.id.badge_text, context.getString(R.string.title_widget_favorites))
+            setOnClickPendingIntent(R.id.badge, open(context, WidgetRequest.Open))
             removeAllViews(R.id.grid)
             contacts.chunked(fit.columns).forEachIndexed { index, row ->
                 val line = RemoteViews(context.packageName, R.layout.widget_favorites_row)
@@ -212,7 +212,7 @@ object Widgets {
         }
     }
 
-    /** No access or no favorites (§14.3), as [FavoritesGrid.stateLook] says: the icon alone at 1 × 1, the sentence alone in one row; the whole card opens the app. */
+    /** No access or no favorites (§14.3), as [FavoritesGrid.stateLook] says: the icon alone in one column, the sentence alone in one row; the whole piece opens the app. */
     private fun state(context: Context, fit: FavoritesGrid.Fit, access: Boolean): RemoteViews =
         RemoteViews(context.packageName, R.layout.widget_favorites_state).apply {
             val look = FavoritesGrid.stateLook(fit)
@@ -227,9 +227,9 @@ object Widgets {
             }
             setTextViewText(R.id.state_button, context.getString(R.string.button_open_contacts))
             setViewVisibility(R.id.state_button, if (!access && look == FavoritesGrid.StateLook.FULL) View.VISIBLE else View.GONE)
-            setContentDescription(android.R.id.background, text)
+            setContentDescription(R.id.state_piece, text)
             val open = open(context, WidgetRequest.Open)
-            setOnClickPendingIntent(android.R.id.background, open)
+            setOnClickPendingIntent(R.id.state_piece, open)
             setOnClickPendingIntent(R.id.state_button, open)
         }
 
@@ -263,7 +263,7 @@ object Widgets {
     }
 }
 
-/** Favorites, 4 × 2 by default, from 1 × 1 (SPEC §14.1). */
+/** Favorites, 4 × 2 by default, from 2 × 1 (SPEC §14.1). */
 class FavoritesWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) = redraw(context)
 

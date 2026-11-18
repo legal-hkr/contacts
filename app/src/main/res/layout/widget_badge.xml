@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The header pill of the widgets, as Calendar's badge: a symbol and a word on the inverse surface, 30 dp high. Its text is set in code. Sizes are in dp, text too. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="SpUsage,ContentDescription"
+    android:id="@+id/badge"
+    android:layout_width="wrap_content"
+    android:layout_height="30dp"
+    android:background="@drawable/widget_badge"
+    android:elevation="2dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="9dp"
+    android:paddingEnd="12dp">
+
+    <ImageView
+        android:id="@+id/badge_icon"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/ic_star_filled"
+        android:tint="@color/widget_inverse_on_surface"
+        tools:ignore="UseAppTint" />
+
+    <TextView
+        android:id="@+id/badge_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text=""
+        android:textColor="@color/widget_inverse_on_surface"
+        android:textSize="15dp"
+        android:textStyle="bold" />
+</LinearLayout>

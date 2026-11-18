@@ -34,8 +34,8 @@ class FavoritesGridTest {
     }
 
     @Test
-    fun oneByOneShowsOneAvatarWithoutItsName() {
-        val fit = FavoritesGrid.fit(70, 70)
+    fun oneColumnShowsOneAvatarWithoutItsName() {
+        val fit = FavoritesGrid.fit(60, 60)
         assertEquals(1, fit.count)
         assertFalse(fit.labels)
         assertEquals(48, fit.avatar)
@@ -44,7 +44,7 @@ class FavoritesGridTest {
 
     @Test
     fun aVeryLowWidgetShrinksTheAvatar() {
-        assertEquals(37, FavoritesGrid.fit(57, 57).avatar)
+        assertEquals(36, FavoritesGrid.fit(40, 40).avatar)
         assertEquals(FavoritesGrid.SMALLEST_AVATAR, FavoritesGrid.fit(57, 20).avatar)
     }
 
@@ -52,7 +52,7 @@ class FavoritesGridTest {
     fun aTallWidgetFillsWithRows() {
         val fit = FavoritesGrid.fit(250, 420)
         assertTrue(fit.title)
-        // 420 − 20 of padding − 24 of title = 376: four rows of 68 with 8 between take 296, five 372
+        // 420 − 4 of room for shadows − 36 of the header = 380: five rows of 60 with 8 between take 332, six 400
         assertEquals(5, fit.rows)
     }
 }

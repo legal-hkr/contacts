@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Favorites widget before its first drawing (SPEC §14.3): the empty card. -->
+<!-- The Favorites widget before its first drawing (SPEC §14.3): nothing yet, as it has no background of its own. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_card"
+    android:background="@drawable/widget_floating_frame"
     android:clipToOutline="true" />

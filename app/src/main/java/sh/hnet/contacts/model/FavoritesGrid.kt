@@ -1,25 +1,25 @@
 package sh.hnet.contacts.model
 
 /**
- * How the Favorites widget lays out at the size the launcher gives it (SPEC §14.1, the owner's D4 of 18 Nov 2026): as many favorites as whole cells fit, never scrolling and never "more"; the title only where two rows fit under it; 1 × 1 shows one avatar (the owner, 18 Nov 2026). All sizes in dp.
+ * How the Favorites widget lays out at the size the launcher gives it (SPEC §14.1, the owner's D4 of 18 Nov 2026): as many favorites as whole cells fit, never scrolling and never "more"; the header pill only where two rows fit under it; the smallest size is 2 × 1 (the owner, 18 Nov 2026; one column only where a launcher's two cells are narrower than two columns). Pieces without a background of their own, as Calendar's Agenda (the owner, the same day). All sizes in dp.
  */
 object FavoritesGrid {
-    /** The card's padding at the sides and at the top and bottom. */
-    const val PADDING_SIDE = 8
-    const val PADDING_END = 10
+    /** Room for the pieces' shadows at the sides and at the top and bottom. */
+    const val PADDING_SIDE = 2
+    const val PADDING_END = 2
 
-    /** One column: the 48 dp avatar with 4 dp on each side; a name wider than that is cut with an ellipsis. */
+    /** One column: the 48 dp avatar with 4 dp on each side; a name wider than its column is cut with an ellipsis in its pill. */
     const val COLUMN = 56
 
-    /** The avatar, the name's 4 dp margin and its line. */
+    /** The avatar, and the name's 20 dp pill over its lower edge by 8. */
     const val AVATAR = 48
-    const val CELL = 68
+    const val CELL = 60
 
     /** Between two rows. */
     const val GAP = 8
 
-    /** The title's line with its margin under it. */
-    const val TITLE = 24
+    /** The header pill, 30 dp, with 6 under it. */
+    const val TITLE = 36
 
     /** The smallest avatar, for a widget lower than one whole cell. */
     const val SMALLEST_AVATAR = 32
@@ -32,7 +32,7 @@ object FavoritesGrid {
         val count: Int get() = columns * rows
     }
 
-    /** How the state cards (no access, no favorites) show: the icon alone at 1 × 1, the sentence alone in one row, all of it otherwise. */
+    /** How the states (no access, no favorites) show: the icon alone in one column, the sentence alone in one row, all of it otherwise. */
     enum class StateLook { ICON, TEXT, FULL }
 
     fun fit(width: Int, height: Int): Fit {

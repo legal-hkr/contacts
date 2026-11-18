@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Favorites (SPEC §14.1): 4 × 2 by default, resizable in both directions down to 1 × 1 (the owner, 18 Nov 2026), as many favorites as fit. Redrawn on changes of the contacts, never by a period. -->
+<!-- Favorites (SPEC §14.1): 4 × 2 by default, resizable in both directions down to 2 × 1 (the owner, 18 Nov 2026: 1 × 1 is the one-contact widget's), as many favorites as fit. Redrawn on changes of the contacts, never by a period. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/desc_widget_favorites"
     android:initialLayout="@layout/widget_favorites_loading"
     android:minWidth="250dp"
     android:minHeight="180dp"
-    android:minResizeWidth="40dp"
+    android:minResizeWidth="110dp"
     android:minResizeHeight="40dp"
     android:previewLayout="@layout/widget_favorites_preview"
     android:resizeMode="horizontal|vertical"
