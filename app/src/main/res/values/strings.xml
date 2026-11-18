@@ -455,4 +455,7 @@
     <string name="label_widget_small_button">Button in the 1 × 1 size</string>
     <string name="label_no_button">No button</string>
     <string name="label_change_contact">Change contact</string>
+    <string name="title_country_code">Country code</string>
+    <string name="label_no_country_code">No country code</string>
+    <string name="content_description_country">Country code: %1$s</string>
 </resources>

@@ -139,7 +139,11 @@ fun ValueFields(value: FormValue, onChange: (FormValue) -> Unit, onRemove: () ->
             }
             // A default only means something among several (or to take it off the last one left)
             val defaultable = (value.kind == EditKind.PHONE || value.kind == EditKind.EMAIL) && (!onlyOne || value.isDefault)
-            ValueRow(remove) { Field(value.part("data1"), { set("data1", it) }, label, Modifier.weight(1f), keyboard = keyboard, capitalize = value.kind == EditKind.RELATION) }
+            ValueRow(remove) {
+                // A number with its country chosen from a list and formatted as typed (the owner, 18 Nov 2026)
+                if (value.kind == EditKind.PHONE) PhoneField(value.part("data1"), { set("data1", it) }, Modifier.weight(1f))
+                else Field(value.part("data1"), { set("data1", it) }, label, Modifier.weight(1f), keyboard = keyboard, capitalize = value.kind == EditKind.RELATION)
+            }
             TypeField(value, onChange, if (defaultable) onDefault else null, Modifier.fillMaxWidth())
         }
     }

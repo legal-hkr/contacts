@@ -449,4 +449,7 @@
     <string name="label_widget_small_button">Przycisk w rozmiarze 1 × 1</string>
     <string name="label_no_button">Bez przycisku</string>
     <string name="label_change_contact">Zmień kontakt</string>
+    <string name="title_country_code">Kod kraju</string>
+    <string name="label_no_country_code">Bez kodu kraju</string>
+    <string name="content_description_country">Kod kraju: %1$s</string>
 </resources>

@@ -40,6 +40,7 @@ private val COMPONENTS = listOf(
     "Okio",
     "JSpecify",
     "JetBrains Java Annotations",
+    "libphonenumber",
     "Material Symbols",
 )
 
