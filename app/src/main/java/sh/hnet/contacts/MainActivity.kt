@@ -1,5 +1,6 @@
 package sh.hnet.contacts
 
+import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -55,8 +56,10 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND_MULTIPLE -> intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
             else -> return null
         }
-        if (uris.isEmpty()) return null
-        return Screen.Import(uris.map { it.toString() }, external = true)
+        // Only files another app hands over: an explicit intent could name a file:// path or the app's own share folder, which the app would then read with its own rights
+        val handed = uris.filter { it.scheme == ContentResolver.SCHEME_CONTENT && it.authority != "$packageName.files" }
+        if (handed.isEmpty()) return null
+        return Screen.Import(handed.map { it.toString() }, external = true)
     }
 
     /** "Create contact" from another app (SPEC §3.4): the editor for a new contact with the number, e-mail and name handed over. */

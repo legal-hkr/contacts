@@ -65,7 +65,7 @@ object VCardWriter {
             labeled("TEL${params(phoneType(value.type), value.isDefault)}:${text(value.part("data1"))}", value.label.takeIf { value.type == 0 })
         }
         for (value in contact.values[EditKind.EMAIL].orEmpty()) {
-            labeled("EMAIL${params(simpleType(value.type), value.isDefault)}:${text(value.part("data1"))}", value.label.takeIf { value.type == 0 })
+            labeled("EMAIL${params(emailType(value.type), value.isDefault)}:${text(value.part("data1"))}", value.label.takeIf { value.type == 0 })
         }
         for (value in contact.values[EditKind.ADDRESS].orEmpty()) {
             val adr = listOf("", "", value.part("data4"), value.part("data7"), value.part("data8"), value.part("data9"), value.part("data10")).joinToString(";") { component(it) }
@@ -136,11 +136,20 @@ object VCardWriter {
         4 -> "\"work,fax\""
         5 -> "\"home,fax\""
         6 -> "pager"
-        12 -> "voice"
+        // Types without an RFC 6350 value of their own: the names `VCardReader.phoneType` reads back
+        17 -> "\"cell,work\""
+        18 -> "\"pager,work\""
+        13 -> "fax"
+        9 -> "car"
+        11 -> "isdn"
+        12 -> "main"
         7 -> "voice"
         0 -> null
         else -> "voice"
     }
+
+    /** Home, work, mobile (Apple's `x-mobile`, read back by `VCardReader.emailType`), other with no type. */
+    private fun emailType(type: Int): String? = if (type == 4) "x-mobile" else simpleType(type)
 
     /** Home (1), work (2), other (3, no type) for e-mail, address and SIP. */
     private fun simpleType(type: Int): String? = when (type) {
@@ -184,8 +193,8 @@ object VCardWriter {
         null -> null
     }
 
-    /** A text value (RFC 6350 §3.4): backslash, comma and line breaks escaped. */
-    fun text(value: String): String = value.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\r\n", "\\n").replace("\n", "\\n")
+    /** A text value (RFC 6350 §3.4): backslash, comma and line breaks (a lone CR too) escaped. */
+    fun text(value: String): String = value.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n")
 
     /** A component of a structured value (N, ADR, ORG): the semicolon separates components, so it is escaped too. */
     private fun component(value: String): String = text(value)
@@ -194,7 +203,11 @@ object VCardWriter {
     private fun uri(value: String): String = value.replace("\n", "").replace("\r", "")
 
     /** A parameter value: quoted when it holds a character the grammar keeps for itself. */
-    private fun param(value: String): String = if (value.any { it == ':' || it == ';' || it == ',' }) "\"${value.replace("\"", "")}\"" else value
+    private fun param(value: String): String {
+        // A quote can't be escaped in a parameter value (RFC 6350 §5): it goes, or the reader would take it as the start of a quoted value
+        val plain = value.replace("\"", "")
+        return if (plain.any { it == ':' || it == ';' || it == ',' }) "\"$plain\"" else plain
+    }
 
     /** Folds a line at [FOLD] octets with CRLF and a space, never splitting a character's UTF-8 bytes. */
     fun fold(line: String): String {

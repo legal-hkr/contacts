@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
@@ -84,7 +85,8 @@ object Backup {
             return BackupCheck.NotOurs(e.message ?: "Not a JSON object")
         }
         if (root.string("format") != BackupFile.FORMAT) return BackupCheck.NotOurs("format: ${root.string("format") ?: "absent"}")
-        val version = root["formatVersion"]?.jsonPrimitive?.intOrNull ?: return BackupCheck.NotOurs("formatVersion absent")
+        // Not a number (an object, a list) is as good as absent; jsonPrimitive would throw on it
+        val version = (root["formatVersion"] as? JsonPrimitive)?.intOrNull ?: return BackupCheck.NotOurs("formatVersion absent")
         if (version > BackupFile.FORMAT_VERSION) return BackupCheck.Newer(version)
         return try {
             BackupCheck.Valid(json.decodeFromJsonElement(BackupFile.serializer(), root))

@@ -32,7 +32,7 @@ import sh.hnet.contacts.ui.components.settingsRowColors
  * classpath; update when a dependency with another license is added).
  */
 private val COMPONENTS = listOf(
-    "AndroidX (Jetpack Compose, Material 3, Room, Navigation 3, DataStore, Lifecycle, Activity, Core)",
+    "AndroidX (Jetpack Compose, Material 3, Navigation 3, DataStore, Lifecycle, Activity, Core)",
     "Kotlin",
     "kotlinx.coroutines",
     "kotlinx.serialization",

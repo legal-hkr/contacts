@@ -256,7 +256,8 @@ private fun ContactContent(
                         DetailKind.EMAIL -> mail(detail.value)
                         DetailKind.ADDRESS -> showOnMap(detail.value)
                         DetailKind.WEBSITE -> {
-                            val url = if (Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:").containsMatchIn(detail.value)) detail.value else "https://${detail.value}"
+                            // Only web addresses open: a stored file:// or other scheme would crash or reach an app it wasn't meant for, and "example.com:8080" is a host with a port, not a scheme
+                            val url = if (Regex("^https?://", RegexOption.IGNORE_CASE).containsMatchIn(detail.value)) detail.value else "https://${detail.value.substringAfter("://")}"
                             open(context, Intent(Intent.ACTION_VIEW, url.toUri())) { reportNoApp(website) }
                         }
                         // The day in a calendar app, if one handles it; else nothing
@@ -299,6 +300,9 @@ private fun open(context: Context, intent: Intent, onMissing: () -> Unit) {
     try {
         context.startActivity(intent)
     } catch (_: ActivityNotFoundException) {
+        onMissing()
+    } catch (_: RuntimeException) {
+        // A value another app can't take (a SecurityException, a malformed address): as if none could
         onMissing()
     }
 }
@@ -460,6 +464,7 @@ internal fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String,
 private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messageScope: CoroutineScope, onDelete: (Deletion, String) -> Unit, onMoved: (Moved, String, String?) -> Unit, onJoin: (Long, String) -> Unit) {
     var moving by remember { mutableStateOf(false) }
     var separating by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
     val app0 = LocalContext.current.applicationContext as ContactsApplication
     // Where it can go (SPEC §8.4): writable accounts other than the one its entry is in; only for a contact with a local or writable entry
     val moveTargets by produceState<List<AccountInfo>>(emptyList(), contact.sources) {
@@ -533,9 +538,12 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
                 stringResource(R.string.menu_delete),
                 R.drawable.ic_delete,
                 onClick = {
+                    // One delete per page: a second tap during the page's exit closed the page under it and carried the first delete out with no Undo
+                    if (deleting) return@DestructiveButton
+                    deleting = true
                     scope.launch {
                         val deletion = app.writer.deletion(listOf(contact.id))
-                        if (deletion.contacts.isNotEmpty()) onDelete(deletion, if (deletion.rawContactIds.size > 1) deletedFrom else deletedOne)
+                        if (deletion.contacts.isNotEmpty()) onDelete(deletion, if (deletion.rawContactIds.size > 1) deletedFrom else deletedOne) else deleting = false
                     }
                 },
                 modifier = Modifier.padding(top = 16.dp),

@@ -299,7 +299,7 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
     // The letter of every item, for the fast scroller's bubble
     val sections = remember(state, duplicates.size > dismissed, selection.active) {
         val sections = ArrayList<String>(state.entries.size + 2)
-        if (favorites) sections += STAR
+        if (favorites && !selection.active) sections += STAR
         // The duplicates card files with the first letter's place
         if (duplicates.size > dismissed && !selection.active) sections += state.entries.firstOrNull()?.let { (it as? ListEntry.Header)?.letter }.orEmpty()
         var letter = ""

@@ -20,7 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +28,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.data.AccountInfo
@@ -47,7 +48,6 @@ import sh.hnet.contacts.ui.components.groupShapes
 @Composable
 fun MoveDialog(contacts: List<Long>?, name: String?, targets: List<AccountInfo>, onMoved: (Moved, String) -> Unit, onDismiss: () -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
-    val scope = rememberCoroutineScope()
     var chosen by remember { mutableStateOf(targets.firstOrNull()) }
     var busy by remember { mutableStateOf(false) }
     var count by remember { mutableStateOf<Int?>(contacts?.size) }
@@ -73,11 +73,14 @@ fun MoveDialog(contacts: List<Long>?, name: String?, targets: List<AccountInfo>,
             TextButton(enabled = chosen != null && !busy, onClick = {
                 val target = chosen ?: return@TextButton
                 busy = true
-                scope.launch {
+                // In the app's scope: a dialog gone midway (the activity recreated by a theme or language change) would cancel the move after the copies were written, and with onMoved never called the old entries stayed beside them with no Undo
+                app.appScope.launch {
                     val ids = contacts ?: app.writer.localContacts()
                     val moved = app.writer.move(ids, target.account)
-                    busy = false
-                    onMoved(moved, target.account.name)
+                    withContext(Dispatchers.Main) {
+                        busy = false
+                        onMoved(moved, target.account.name)
+                    }
                 }
             }) {
                 if (busy) {

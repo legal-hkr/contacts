@@ -11,6 +11,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -82,7 +84,10 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
                     else -> ListState.Ready(ContactList.build(contacts, locale), ContactList.favorites(contacts, locale), settings.companyLine)
                 }
             }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ListState.Loading)
+    }
+        // Sorting thousands of names by collation keys is no work for the main thread
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ListState.Loading)
 
     /** Back on screen: access may have been given or taken in the system's settings meanwhile. */
     fun refreshAccess() {
@@ -170,6 +175,8 @@ class ListViewModel(application: Application) : AndroidViewModel(application) {
                 SearchState(text, Search.find(contacts, text, app.contacts.countryCode(), all), all, hiddenExist, blank = false)
             }
         }
+        // Every keystroke folds every field of every contact: off the main thread, or typing stutters
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
 

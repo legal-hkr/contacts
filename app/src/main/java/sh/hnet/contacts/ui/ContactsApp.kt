@@ -220,7 +220,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                     snackbars.currentSnackbarData?.dismiss()
                     val message = if (outcome.skipped > 0) importedSkippedText.format(count, outcome.accountLabel, format.format(outcome.skipped)) else importedText.format(count, outcome.accountLabel)
                     // Undo takes away exactly what this import wrote
-                    if (snackbars.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) {
+                    if (snackbars.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
                         runCatching { app.writer.delete(outcome.rawContactIds) }
                     }
                 }

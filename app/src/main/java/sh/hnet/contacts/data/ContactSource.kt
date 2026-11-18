@@ -90,15 +90,20 @@ class ContactSource(private val context: Context) {
         context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED &&
             context.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED
 
-    /** Emits whenever the storage changes (a sync, another app, the app itself); not at once – readers start with `onStart`. Collect only with access. */
+    /** Emits whenever the storage changes (a sync, another app, the app itself); not at once – readers start with `onStart`. Without access it never emits: the system refuses to watch the storage then (SecurityException), which crashed the pages that watch it (Settings, Accounts, the duplicates) when access was refused. */
     val changes: Flow<Unit> = callbackFlow {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
                 trySend(Unit)
             }
         }
-        resolver.registerContentObserver(ContactsContract.AUTHORITY_URI, true, observer)
-        awaitClose { resolver.unregisterContentObserver(observer) }
+        val watching = hasAccess() && try {
+            resolver.registerContentObserver(ContactsContract.AUTHORITY_URI, true, observer)
+            true
+        } catch (_: SecurityException) {
+            false
+        }
+        awaitClose { if (watching) resolver.unregisterContentObserver(observer) }
     }
 
     /** The platform's local account (Android 14 and later), if the phone has one; entries without any account are local too. */

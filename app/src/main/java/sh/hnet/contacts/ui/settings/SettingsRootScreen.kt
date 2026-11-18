@@ -27,9 +27,16 @@ fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContact
     val app = context.applicationContext as ContactsApplication
     val hidden by app.preferences.hiddenAccounts.collectAsStateWithLifecycle(emptySet())
     // "Shown: 3 of 5" (SPEC §13.1): every account with contacts or able to take them, local contacts when there are any
-    val found by produceState<List<String>?>(null) { value = runCatching { app.contacts.accounts().map { it.account.key } }.getOrNull() }
+    // Both kinds of local contacts (no account, the platform's local account) are one "On this phone", as on the Accounts page: one key list each
+    val found by produceState<List<List<String>>?>(null) {
+        value = runCatching {
+            val all = app.contacts.accounts()
+            val locals = all.filter { it.local }.map { it.account.key }
+            all.filter { !it.local }.map { listOf(it.account.key) } + listOfNotNull(locals.ifEmpty { null })
+        }.getOrNull()
+    }
     val duplicates by app.duplicates.collectAsStateWithLifecycle()
-    val accounts = found?.let { keys -> keys.count { it !in hidden } to keys.size }
+    val accounts = found?.let { groups -> groups.count { keys -> keys.none { it in hidden } } to groups.size }
     SettingsPage(title = stringResource(R.string.title_settings), onBack = onBack) {
         SettingsGroup {
             row { shapes ->

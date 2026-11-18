@@ -26,7 +26,7 @@ object Duplicates {
     /**
      * Groups of contacts that look like one person (SPEC §9.2): they share a number or an e-mail,
      * or have the same name and share any value; a name alone is never enough. Pairs in [separate]
-     * (the storage's "keep separate", given as contact id pairs) are never joined. Groups are
+     * (the storage's "keep separate", given as contact id pairs) are never joined, not even through a third contact. Groups are
      * transitive (A like B and B like C make one group {A, B, C}) and over [MAX_GROUP] dropped.
      */
     fun find(contacts: List<DupContact>, separate: Set<Pair<Long, Long>>): List<DupGroup> {
@@ -63,7 +63,10 @@ object Duplicates {
         byValue({ it.emails }) { _, _ -> DupReason.EMAIL }
         // The same name with an address or a website in common (a number or an e-mail matched above already)
         byValue({ it.others }) { a, b -> if (sameName(a, b)) DupReason.NAME_EMAIL else null }
-        val groups = contacts.map { it.id }.filter { parent.containsKey(it) }.groupBy { root(it) }.values.filter { it.size in 2..MAX_GROUP }
+        // A group reached through a third contact may hold a pair the user said are not the same person: joining it would join them too, so it isn't suggested
+        val groups = contacts.map { it.id }.filter { parent.containsKey(it) }.groupBy { root(it) }.values
+            .filter { it.size in 2..MAX_GROUP }
+            .filter { ids -> ids.none { a -> ids.any { b -> (a to b) in apart } } }
         return groups.map { ids ->
             val inside = ids.toSet()
             val reason = reasons.filterKeys { (a, b) -> a in inside && b in inside }.values.minByOrNull { it.ordinal } ?: DupReason.NUMBER

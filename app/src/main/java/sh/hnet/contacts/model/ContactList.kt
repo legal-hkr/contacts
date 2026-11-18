@@ -80,7 +80,8 @@ object ContactList {
      * doesn't start with a letter.
      */
     fun letter(name: String, locale: Locale): String {
-        val first = name.trimStart().firstOrNull() ?: return OTHER
+        // Composed first: a name stored decomposed (macOS, iCloud) starts with the base letter and a separate mark
+        val first = Normalizer.normalize(name.trimStart().take(4), Normalizer.Form.NFC).firstOrNull() ?: return OTHER
         if (!first.isLetter()) return OTHER
         val upper = first.toString().uppercase(locale)
         if (upper in OWN_LETTERS[locale.language].orEmpty()) return upper
@@ -103,12 +104,10 @@ object ContactList {
         val keyed = contacts.map { Triple(it, letter(it.sortName, locale), collator.getCollationKey(it.sortName.trim())) }
         val sorted = keyed.sortedWith(compareBy<Triple<ContactRow, String, CollationKey>> { it.second == OTHER }.thenBy { it.third }.thenBy { it.first.id })
         val entries = ArrayList<ListEntry>(sorted.size + 40)
-        var current: String? = null
+        val seen = HashSet<String>()
         for ((contact, letter, _) in sorted) {
-            if (letter != current) {
-                entries += ListEntry.Header(letter)
-                current = letter
-            }
+            // The collation of the language and the letters don't always agree (Swedish Å after Z, Czech Ch after H): a letter that comes back stays under the header before it, as one header per letter is what the list's keys need
+            if (seen.add(letter)) entries += ListEntry.Header(letter)
             entries += ListEntry.Contact(contact)
         }
         return entries

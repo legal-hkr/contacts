@@ -50,6 +50,24 @@ object VCardReader {
      *
      * @throws NotVCardException when there is no card in the bytes
      */
+    /**
+     * Several files as one import: each read on its own, as each has its own BOM and charset (joined bytes lost the second file's BOM with its first card, and one Windows-1250 file turned another's UTF-8 letters into Windows-1250). A file without a card adds nothing.
+     *
+     * @throws NotVCardException when none of them has a card
+     */
+    fun read(files: List<ByteArray>): VCardFile {
+        val read = files.mapNotNull { bytes ->
+            try {
+                read(bytes)
+            } catch (_: NotVCardException) {
+                null
+            }
+        }
+        if (read.isEmpty()) throw NotVCardException()
+        if (read.size == 1) return read[0]
+        return VCardFile(read.flatMap { it.contacts }, read.flatMap { it.skipped }.distinct(), read.sumOf { it.skippedContacts })
+    }
+
     fun read(bytes: ByteArray): VCardFile {
         val (text, fallback) = decode(bytes)
         val cards = ArrayList<List<Property>>()
@@ -120,7 +138,15 @@ object VCardReader {
         var i = 0
         while (i < physical.size) {
             val line = StringBuilder(physical[i++])
-            while (i < physical.size && physical[i].isNotEmpty() && (physical[i][0] == ' ' || physical[i][0] == '\t')) line.append(physical[i++], 1, physical[i - 1].length)
+            while (i < physical.size && physical[i].isNotEmpty() && (physical[i][0] == ' ' || physical[i][0] == '\t')) {
+                // An indented line after a quoted-printable soft break: the "=" goes, as it would without the indent
+                if (line.endsWith("=") && quotedPrintable(line)) {
+                    line.setLength(line.length - 1)
+                    line.append(physical[i++].trimStart())
+                } else {
+                    line.append(physical[i++], 1, physical[i - 1].length)
+                }
+            }
             if (quotedPrintable(line)) {
                 while (line.endsWith("=") && i < physical.size) {
                     line.setLength(line.length - 1)
@@ -207,7 +233,9 @@ object VCardReader {
     private fun valueOf(property: Property, fallback: Charset): String {
         var bytes = property.raw.toByteArray(LATIN1)
         if (property.encoding == "QUOTED-PRINTABLE") bytes = unquote(bytes)
-        val charset = property.param("CHARSET")?.let { runCatching { Charset.forName(it) }.getOrNull() } ?: fallback
+        val declared = property.param("CHARSET")?.let { runCatching { Charset.forName(it) }.getOrNull() }
+        // Quoted-printable hides a value's bytes from the file's UTF-8 check (decision A): an undeclared value that isn't UTF-8 once decoded is Windows-1250
+        val charset = declared ?: if (fallback == Charsets.UTF_8 && property.encoding == "QUOTED-PRINTABLE" && !validUtf8(bytes)) CP1250 else fallback
         return String(bytes, charset)
     }
 

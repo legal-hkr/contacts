@@ -60,8 +60,13 @@ private enum class Step { ACCESS, BACKUP, ACCOUNTS }
 fun WizardScreen(snackbars: SnackbarHostState, messageScope: CoroutineScope, onDone: () -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     val startedWithAccess = rememberSaveable { app.contacts.hasAccess() }
-    val steps = if (startedWithAccess) listOf(Step.BACKUP, Step.ACCOUNTS) else listOf(Step.ACCESS, Step.BACKUP, Step.ACCOUNTS)
     var index by rememberSaveable { mutableIntStateOf(0) }
+    // Access refused: the wizard ends with the backup step, which says so ("Step 2 of 2", Done) instead of promising a third
+    val steps = when {
+        startedWithAccess -> listOf(Step.BACKUP, Step.ACCOUNTS)
+        index > 0 && !app.contacts.hasAccess() -> listOf(Step.ACCESS, Step.BACKUP)
+        else -> listOf(Step.ACCESS, Step.BACKUP, Step.ACCOUNTS)
+    }
     var restored by rememberSaveable { mutableStateOf(false) }
     val next: () -> Unit = {
         val following = steps.getOrNull(index + 1)
@@ -71,7 +76,7 @@ fun WizardScreen(snackbars: SnackbarHostState, messageScope: CoroutineScope, onD
     val label = stringResource(R.string.label_step, index + 1, steps.size)
     when (steps[index]) {
         Step.ACCESS -> AccessStep(label, onNext = next)
-        Step.BACKUP -> BackupStep(label, snackbars, messageScope, onRestored = { restored = true; next() }, onNext = next)
+        Step.BACKUP -> BackupStep(label, last = index == steps.lastIndex, snackbars, messageScope, onRestored = { restored = true; next() }, onNext = next)
         Step.ACCOUNTS -> AccountsStep(label, restored, onDone = onDone)
     }
 }
@@ -84,9 +89,10 @@ private fun WizardStep(
     text: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
+    confirmEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    FormPage(title = null, confirmLabel = confirmLabel, onConfirm = onConfirm, contentSpacing = 0.dp) {
+    FormPage(title = null, confirmLabel = confirmLabel, onConfirm = onConfirm, confirmEnabled = confirmEnabled, contentSpacing = 0.dp) {
         Spacer(Modifier.height(16.dp))
         AppLogo(titleInset = TITLE_INSET)
         Text(step, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = TITLE_INSET))
@@ -124,10 +130,10 @@ private fun AccessStep(step: String, onNext: () -> Unit) {
 
 /** Step 2 (SPEC §12.2): the family's question – start fresh or restore a backup – and Next, which acts on the choice. */
 @Composable
-private fun BackupStep(step: String, snackbars: SnackbarHostState, messageScope: CoroutineScope, onRestored: () -> Unit, onNext: () -> Unit) {
+private fun BackupStep(step: String, last: Boolean, snackbars: SnackbarHostState, messageScope: CoroutineScope, onRestored: () -> Unit, onNext: () -> Unit) {
     var restore by rememberSaveable { mutableStateOf(false) }
     val restoreAction = rememberRestoreAction(snackbars, messageScope, onRestored = onRestored)
-    WizardStep(step, stringResource(R.string.title_backup), stringResource(R.string.msg_wizard_backup), stringResource(R.string.button_next), onConfirm = { if (restore) restoreAction.pick() else onNext() }) {
+    WizardStep(step, stringResource(R.string.title_backup), stringResource(R.string.msg_wizard_backup), stringResource(if (last) R.string.button_done else R.string.button_next), onConfirm = { if (restore) restoreAction.pick() else onNext() }) {
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             SettingsRadioRow(groupShapes(0, 2), stringResource(R.string.label_start_fresh), selected = !restore, onSelect = { restore = false }, supporting = stringResource(R.string.desc_start_fresh))
             SettingsRadioRow(groupShapes(1, 2), stringResource(R.string.label_restore_backup), selected = restore, onSelect = { restore = true }, supporting = stringResource(R.string.desc_restore_backup_wizard))
@@ -150,18 +156,22 @@ private fun AccountsStep(step: String, restored: Boolean, onDone: () -> Unit) {
     LaunchedEffect(accounts) {
         val found = accounts ?: return@LaunchedEffect
         if (settled) return@LaunchedEffect
-        val current = app.preferences.hiddenAccounts.first()
-        found.filter { it.account.type in MessagingAccounts.TYPES && it.account.key !in current }.forEach { app.preferences.setAccountShown(it.account.key, false) }
-        // The default account for new contacts, set without asking (SPEC §12.3): the first writable account, or local contacts
-        if (app.preferences.defaultAccount.first() == null) {
-            val targets = app.contacts.targets()
-            app.preferences.setDefaultAccount(targets.first().account.key)
+        try {
+            val current = app.preferences.hiddenAccounts.first()
+            found.filter { it.account.type in MessagingAccounts.TYPES && it.account.key !in current }.forEach { app.preferences.setAccountShown(it.account.key, false) }
+            // The default account for new contacts, set without asking (SPEC §12.3): the first writable account, or local contacts
+            if (app.preferences.defaultAccount.first() == null) {
+                val targets = app.contacts.targets()
+                app.preferences.setDefaultAccount(targets.first().account.key)
+            }
+        } catch (_: Exception) {
+            // The storage refused to answer (access taken away): the wizard can still end, the defaults stay
         }
         settled = true
     }
     val synced = accounts.orEmpty().filter { !it.local }
     if (accounts != null && synced.isEmpty()) {
-        WizardStep(step, stringResource(R.string.title_accounts), stringResource(R.string.msg_wizard_no_account), stringResource(R.string.button_done), onDone) {
+        WizardStep(step, stringResource(R.string.title_accounts), stringResource(R.string.msg_wizard_no_account), stringResource(R.string.button_done), onDone, confirmEnabled = settled) {
             SegmentedListItem(
                 shapes = groupShapes(0, 1),
                 colors = settingsRowColors(),
@@ -174,7 +184,8 @@ private fun AccountsStep(step: String, restored: Boolean, onDone: () -> Unit) {
         }
         return
     }
-    WizardStep(step, stringResource(R.string.title_accounts), stringResource(R.string.msg_wizard_accounts), stringResource(R.string.button_done), onDone) {
+    // Done waits for the setup above: leaving earlier cancelled it, and messaging apps' accounts stayed in the list with no default account set
+    WizardStep(step, stringResource(R.string.title_accounts), stringResource(R.string.msg_wizard_accounts), stringResource(R.string.button_done), onDone, confirmEnabled = settled) {
         val found = accounts.orEmpty()
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             found.forEachIndexed { i, account ->

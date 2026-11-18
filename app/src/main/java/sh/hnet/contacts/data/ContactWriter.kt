@@ -431,9 +431,10 @@ class ContactWriter(private val context: Context, private val source: ContactSou
                     return@forEachIndexed
                 }
                 val copy = copyEntry(from.first, target, from.third)
-                for ((raw, _, _) in entries) keepTogether(copy, raw)
+                // Counted as moved before joining: Undo has to know the copy even if a join below fails
                 old += from.first
                 new += copy
+                for ((raw, _, _) in entries) keepTogether(copy, raw)
             } catch (_: Exception) {
                 failed++
             }
@@ -485,13 +486,18 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         } catch (_: Exception) {
             null
         }
-        when {
-            large != null -> resolver.openAssetFileDescriptor(displayPhoto(copy), "rw")?.use { it.createOutputStream().use { output -> output.write(large) } }
-            thumbnail != null -> resolver.insert(ContactsContract.Data.CONTENT_URI, ContentValues().apply {
-                put(ContactsContract.Data.RAW_CONTACT_ID, copy)
-                put(ContactsContract.Data.MIMETYPE, Photo.CONTENT_ITEM_TYPE)
-                put(Photo.PHOTO, thumbnail)
-            })
+        // The copy exists from here on: a photo the storage refuses must not count the move as failed, or the copy would stay without Undo knowing it
+        try {
+            when {
+                large != null -> resolver.openAssetFileDescriptor(displayPhoto(copy), "rw")?.use { it.createOutputStream().use { output -> output.write(large) } }
+                thumbnail != null -> resolver.insert(ContactsContract.Data.CONTENT_URI, ContentValues().apply {
+                    put(ContactsContract.Data.RAW_CONTACT_ID, copy)
+                    put(ContactsContract.Data.MIMETYPE, Photo.CONTENT_ITEM_TYPE)
+                    put(Photo.PHOTO, thumbnail)
+                })
+            }
+        } catch (_: Exception) {
+            // Moved without its photo; the old entry, with the photo, stays until Undo is gone
         }
         return copy
     }
@@ -637,7 +643,11 @@ class ContactWriter(private val context: Context, private val source: ContactSou
                 operations += if (targetName != null) update(targetName.dataId, name) else insert(name.copy(origins = emptyList()), target, false)
             }
             val others = source.all.entries.filter { it.rawContactId != target }
-            for (entry in others.filter { !it.readOnly }) operations += ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, entry.rawContactId)).build()
+            for (entry in others.filter { !it.readOnly }) {
+                // Rows the review doesn't show (other apps' kinds, as a messenger's) go with the entry into the target, as a move copies them; group memberships aside, as in a move
+                operations += unshownRows(entry.rawContactId, target)
+                operations += ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, entry.rawContactId)).build()
+            }
             // The photo chosen, read before its entry goes
             val targetContact = source.all.entries.first { it.rawContactId == target }.contactId
             val photo = if (photoFrom != null && photoFrom != targetContact) {
@@ -655,6 +665,33 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         } catch (_: Exception) {
             null
         }
+    }
+
+    /** Inserts into [target] of the rows of [rawContactId] whose kind the editor and the review don't know (not a name, photo or group membership either). */
+    private fun unshownRows(rawContactId: Long, target: Long): List<ContentProviderOperation> {
+        val known = Columns.mime.values.toSet() + Photo.CONTENT_ITEM_TYPE + GroupMembership.CONTENT_ITEM_TYPE
+        val columns = arrayOf(ContactsContract.Data.MIMETYPE) + (1..15).map { "data$it" }
+        val operations = ArrayList<ContentProviderOperation>()
+        resolver.query(ContactsContract.Data.CONTENT_URI, columns, "${ContactsContract.Data.RAW_CONTACT_ID} = ?", arrayOf(rawContactId.toString()), ContactsContract.Data._ID)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val mime = cursor.getString(0)
+                if (mime in known) continue
+                val builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValue(ContactsContract.Data.RAW_CONTACT_ID, target)
+                    .withValue(ContactsContract.Data.MIMETYPE, mime)
+                for (i in 1 until columns.size) {
+                    when (cursor.getType(i)) {
+                        Cursor.FIELD_TYPE_NULL -> Unit
+                        Cursor.FIELD_TYPE_BLOB -> builder.withValue(columns[i], cursor.getBlob(i))
+                        Cursor.FIELD_TYPE_INTEGER -> builder.withValue(columns[i], cursor.getLong(i))
+                        Cursor.FIELD_TYPE_FLOAT -> builder.withValue(columns[i], cursor.getDouble(i))
+                        else -> builder.withValue(columns[i], cursor.getString(i))
+                    }
+                }
+                operations += builder.build()
+            }
+        }
+        return operations
     }
 
     /** Of [dataIds], those no longer in the storage. */
@@ -694,7 +731,8 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         }
     }
 
-    private fun values(value: FormValue): Map<String, Any?> {
+    /** The columns of [value]; an [update] leaves alone what the form doesn't hold (a messaging address's type), so a synced value isn't changed behind the user's back. */
+    private fun values(value: FormValue, update: Boolean = false): Map<String, Any?> {
         val result = LinkedHashMap<String, Any?>()
         for (column in Columns.partsOf(value.kind)) result[column] = value.part(column).trim().ifEmpty { null }
         when (value.kind) {
@@ -702,7 +740,7 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             EditKind.NAME -> result["data1"] = null
             EditKind.ADDRESS -> result["data1"] = null
             EditKind.IM -> {
-                result["data2"] = Columns.IM_TYPE_OTHER
+                if (!update) result["data2"] = Columns.IM_TYPE_OTHER
                 result["data5"] = value.protocol?.toString()
                 result["data6"] = if (value.protocol == -1) value.label else null
             }
@@ -730,7 +768,7 @@ class ContactWriter(private val context: Context, private val source: ContactSou
 
     private fun update(dataId: Long, value: FormValue): ContentProviderOperation {
         val builder = ContentProviderOperation.newUpdate(ContentUris.withAppendedId(ContactsContract.Data.CONTENT_URI, dataId))
-        for ((column, v) in values(value)) builder.withValue(column, v)
+        for ((column, v) in values(value, update = true)) builder.withValue(column, v)
         return builder.build()
     }
 }

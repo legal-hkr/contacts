@@ -71,6 +71,50 @@ class VCardReaderTest {
     }
 
     @Test
+    fun anUndeclaredQuotedPrintableValueThatIsNotUtf8IsWindows1250() {
+        // An old Polish phone: no CHARSET, ł as Windows-1250's 0xB3 hidden in quoted-printable, so the file itself is plain ASCII
+        val file = read("BEGIN:VCARD\r\nVERSION:2.1\r\nN;ENCODING=QUOTED-PRINTABLE:Ko=B3odziej;Jan\r\nEND:VCARD\r\n")
+        assertEquals("Kołodziej", file.contacts.single().name["data3"])
+        // The same without a charset but in UTF-8 stays UTF-8
+        val utf8 = read("BEGIN:VCARD\r\nVERSION:2.1\r\nN;ENCODING=QUOTED-PRINTABLE:Ko=C5=82odziej;Jan\r\nEND:VCARD\r\n")
+        assertEquals("Kołodziej", utf8.contacts.single().name["data3"])
+    }
+
+    @Test
+    fun anIndentedQuotedPrintableContinuationLosesItsSoftBreak() {
+        val file = read("BEGIN:VCARD\r\nVERSION:2.1\r\nNOTE;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Za=C5=\r\n =BC=C3=B3=C5=82=C4=87 g=C4=99\r\n =C5=9Bl=C4=85 ja=C5=BA=C5=84\r\nEND:VCARD\r\n")
+        assertEquals("Zażółć gęślą jaźń", file.contacts.single().values[EditKind.NOTE]?.single()?.part("data1"))
+    }
+
+    @Test
+    fun severalFilesAreReadEachInItsOwnCharset() {
+        val bom = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
+        val first = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Paweł\r\nEND:VCARD\r\n".toByteArray(Charset.forName("windows-1250"))
+        val second = bom + "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Łucja\r\nEND:VCARD\r\n".toByteArray()
+        val file = VCardReader.read(listOf(first, second, "not a card".toByteArray()))
+        assertEquals(listOf("Paweł", "Łucja"), file.contacts.map { it.displayName })
+    }
+
+    @Test
+    fun phoneAndEmailTypesWithoutAnRfcValueComeBack() {
+        val types = listOf(17, 18, 13, 9, 11, 12, 7)
+        val contact = CardContact(
+            displayName = "Typy",
+            name = mapOf("data2" to "Typy"),
+            values = mapOf(
+                EditKind.PHONE to types.mapIndexed { i, type -> v("data1" to "60100000$i", type = type) },
+                EditKind.EMAIL to listOf(v("data1" to "m@example.org", type = 4)),
+                EditKind.NOTE to listOf(v("data1" to "Meeting\rTEL:123")),
+            ),
+        )
+        val back = VCardReader.read(VCardWriter.write(listOf(contact)).toByteArray()).contacts.single()
+        assertEquals(types, back.values[EditKind.PHONE]?.map { it.type })
+        assertEquals(4, back.values[EditKind.EMAIL]?.single()?.type)
+        // A lone CR in a note is a line break, not the end of the line: no phone number comes out of it
+        assertEquals("Meeting\nTEL:123", back.values[EditKind.NOTE]?.single()?.part("data1"))
+    }
+
+    @Test
     fun readsApplesLabelsDatesAndServices() {
         val text = "BEGIN:VCARD\nVERSION:3.0\nFN:Tim\n" +
             "item1.TEL:+1 555 0100\nitem1.X-ABLabel:_\$!<Mobile>!\$_\n" +

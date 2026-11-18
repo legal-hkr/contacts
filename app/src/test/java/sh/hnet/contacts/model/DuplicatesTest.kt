@@ -40,6 +40,14 @@ class DuplicatesTest {
     }
 
     @Test
+    fun keptSeparatePairsAreNotJoinedThroughAThirdContact() {
+        // A and C are not the same person; B shares a number with each: suggesting {A, B, C} would join A and C
+        val contacts = listOf(c(1, "A", setOf("48601234567")), c(2, "B", setOf("48601234567", "48602345678")), c(3, "C", setOf("48602345678")))
+        assertEquals(1, Duplicates.find(contacts, emptySet()).size)
+        assertTrue(Duplicates.find(contacts, setOf(1L to 3L)).isEmpty())
+    }
+
+    @Test
     fun shortNumbersSayNothing() {
         assertTrue(Duplicates.find(listOf(c(1, "Pizza", setOf("112")), c(2, "Pogotowie", setOf("112"))), emptySet()).isEmpty())
     }

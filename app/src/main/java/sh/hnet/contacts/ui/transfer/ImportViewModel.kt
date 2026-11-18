@@ -8,7 +8,6 @@ import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -71,16 +70,10 @@ class ImportViewModel(private val app: ContactsApplication, private val uris: Li
         val addresses = uris.map { it.toUri() }
         fileName = addresses.joinToString(", ") { nameOf(it) }
         val file = try {
-            val bytes = withContext(Dispatchers.IO) {
-                ByteArrayOutputStream().use { out ->
-                    for (uri in addresses) {
-                        (resolver.openInputStream(uri) ?: throw IOException("No input")).use { it.copyTo(out) }
-                        out.write("\r\n".toByteArray())
-                    }
-                    out.toByteArray()
-                }
+            val files = withContext(Dispatchers.IO) {
+                addresses.map { uri -> (resolver.openInputStream(uri) ?: throw IOException("No input")).use { it.readBytes() } }
             }
-            withContext(Dispatchers.Default) { VCardReader.read(bytes) }
+            withContext(Dispatchers.Default) { VCardReader.read(files) }
         } catch (_: NotVCardException) {
             null
         } catch (_: Exception) {

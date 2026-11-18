@@ -1,5 +1,6 @@
 package sh.hnet.contacts.model
 
+import java.text.Normalizer
 import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -47,6 +48,24 @@ class ContactListTest {
         assertEquals(listOf("L"), entries.filterIsInstance<ListEntry.Header>().map { it.letter })
         // Unicode collation gives Ł its own place after L: in English it follows the L names, still under L
         assertEquals(listOf("Lena", "Lyle", "Łukasz"), entries.filterIsInstance<ListEntry.Contact>().map { it.contact.name })
+    }
+
+    @Test
+    fun decomposedNamesFileUnderTheirOwnLetter() {
+        // "Śliwa" as macOS writes it: S and a combining acute accent
+        val decomposed = Normalizer.normalize("Śliwa", Normalizer.Form.NFD)
+        assertEquals("Ś", ContactList.letter(decomposed, pl))
+        val entries = ContactList.build(listOf(row(1, "Sikora"), row(2, decomposed), row(3, "Świątek")), pl)
+        assertEquals(listOf("S", "Ś"), entries.filterIsInstance<ListEntry.Header>().map { it.letter })
+    }
+
+    @Test
+    fun aLetterTheCollationBringsBackGetsNoSecondHeader() {
+        // Swedish collation puts Å after Z, while the letter files under A: two "A" headers would share one list key
+        val entries = ContactList.build(listOf(row(1, "Anna"), row(2, "Zoe"), row(3, "Åsa")), Locale.forLanguageTag("sv"))
+        val keys = entries.map { it.key }
+        assertEquals(keys.size, keys.toSet().size)
+        assertEquals(listOf("A", "Z"), entries.filterIsInstance<ListEntry.Header>().map { it.letter })
     }
 
     @Test

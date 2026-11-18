@@ -121,9 +121,11 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
                 when {
                     fresh == null -> underneath = Underneath.DELETED
                     // A photo's address changes when the storage finishes processing a new one: only whether there is a photo counts
+                    // An entry gone (a sync, a move's Undo window over) is a change even with the same values: Save would write into it
+                    read.entries.any { it.rawContactId !in now } -> underneath = Underneath.CHANGED
                     content(fresh.values) == content(read.values) && (fresh.photo == null) == (read.photo == null) -> {
                         // Only the versions moved: the form stays valid, compared from now on against the new ones
-                        snapshot = read.copy(entries = read.entries.map { entry -> entry.copy(version = now[entry.rawContactId] ?: entry.version) })
+                        snapshot = read.copy(entries = read.entries.map { entry -> entry.copy(version = now.getValue(entry.rawContactId)) })
                     }
                     else -> underneath = Underneath.CHANGED
                 }
