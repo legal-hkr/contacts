@@ -69,6 +69,18 @@ class ContactListTest {
     }
 
     @Test
+    fun aTitleDoesNotDecideWhereANameFiles() {
+        // The storage's alternative name keeps the title in front ("dr Szymańska, Barbara"): the parts alone are sorted by
+        assertEquals("Szymańska Barbara", ContactList.sortName("Barbara", null, "Szymańska", byLast = true, fallback = "dr Szymańska, Barbara"))
+        assertEquals("Barbara Szymańska", ContactList.sortName("Barbara", " ", "Szymańska", byLast = false, fallback = "dr Barbara Szymańska"))
+        assertEquals("Kowalski Jan Maria", ContactList.sortName("Jan", "Maria", "Kowalski", byLast = true, fallback = ""))
+        // No parts (a company, a number): the storage's name
+        assertEquals("Przychodnia Pod Lipami", ContactList.sortName(null, null, null, byLast = true, fallback = "Przychodnia Pod Lipami"))
+        val rows = listOf("Sikora Kamil", ContactList.sortName("Barbara", null, "Szymańska", byLast = true, fallback = ""), "Dąbrowska Joanna").mapIndexed { i, name -> row(i.toLong(), name) }
+        assertEquals(listOf("D", "S"), ContactList.build(rows, pl).filterIsInstance<ListEntry.Header>().map { it.letter })
+    }
+
+    @Test
     fun favoritesAreTheStarredOnesInTheListsOrder() {
         val rows = listOf(row(1, "Zofia").copy(starred = true), row(2, "Adam"), row(3, "Łucja").copy(starred = true), row(4, "Lena").copy(starred = true))
         assertEquals(listOf("Lena", "Łucja", "Zofia"), ContactList.favorites(rows, pl).map { it.name })

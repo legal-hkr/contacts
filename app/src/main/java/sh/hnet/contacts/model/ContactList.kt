@@ -99,6 +99,14 @@ object ContactList {
      * The list in [locale]'s order with a header before each letter's contacts; names without a
      * letter come last, under [OTHER]. Order within a letter follows the language's collation.
      */
+    /**
+     * The name the list sorts and files by: the family name, the given name and the middle name ([byLast]), or the given name first – never a title before or after the name ("dr Barbara Szymańska" files under S, not D: the storage's alternative name keeps the title in front). [fallback] (the storage's display name) for a contact without these parts: a company, a number, a nickname.
+     */
+    fun sortName(given: String?, middle: String?, family: String?, byLast: Boolean, fallback: String): String {
+        val parts = if (byLast) listOf(family, given, middle) else listOf(given, middle, family)
+        return parts.mapNotNull { it?.trim()?.takeIf { part -> part.isNotEmpty() } }.joinToString(" ").ifEmpty { fallback }
+    }
+
     fun build(contacts: List<ContactRow>, locale: Locale): List<ListEntry> {
         val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
         val keyed = contacts.map { Triple(it, letter(it.sortName, locale), collator.getCollationKey(it.sortName.trim())) }

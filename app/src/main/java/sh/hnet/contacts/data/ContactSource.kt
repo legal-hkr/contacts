@@ -34,6 +34,7 @@ import sh.hnet.contacts.model.AccountKey
 import sh.hnet.contacts.model.Avatars
 import sh.hnet.contacts.model.CardContact
 import sh.hnet.contacts.model.ContactDetails
+import sh.hnet.contacts.model.ContactList
 import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.Detail
 import sh.hnet.contacts.model.DetailKind
@@ -243,7 +244,7 @@ class ContactSource(private val context: Context) {
         }
         val companies = if (settings.companyLine) companies() else emptyMap()
         val shortNames = shortNames()
-        val initials = initials()
+        val names = nameParts()
         val rows = ArrayList<Pair<ContactRow, Boolean>>()
         resolver.query(
             ContactsContract.Contacts.CONTENT_URI,
@@ -267,12 +268,12 @@ class ContactSource(private val context: Context) {
                     id = id,
                     lookupKey = cursor.getString(1).orEmpty(),
                     name = if (settings.lastFirst) alternative else primary,
-                    sortName = if (settings.sortByLast) alternative else primary,
+                    sortName = names[id].let { parts -> ContactList.sortName(parts?.given, parts?.middle, parts?.family, settings.sortByLast, if (settings.sortByLast) alternative else primary) },
                     photo = photoAddress(cursor.getString(4), cursor.getString(6), cursor.getString(7)),
                     starred = cursor.getInt(5) != 0,
                     company = companies[id],
                     shortName = shortNames[id],
-                    initials = initials[id],
+                    initials = names[id]?.let { Avatars.initials(it.given, it.family, Locale.getDefault()) },
                 ) to (id in shown)
             }
         }
@@ -347,19 +348,21 @@ class ContactSource(private val context: Context) {
         return given + nicknames
     }
 
-    /** The letter avatar's letters per contact (the owner, 18 Nov 2026): from the first name row with a given or family name. */
-    private fun initials(): Map<Long, String> {
-        val result = HashMap<Long, String>()
-        val locale = Locale.getDefault()
+    private class NameParts(val given: String?, val middle: String?, val family: String?)
+
+    /** The parts of each contact's name, from its first name row with any: the letter avatar's letters (the owner, 18 Nov 2026) and the name the list sorts by, without a title. */
+    private fun nameParts(): Map<Long, NameParts> {
+        val result = HashMap<Long, NameParts>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
-            arrayOf(ContactsContract.Data.CONTACT_ID, StructuredName.GIVEN_NAME, StructuredName.FAMILY_NAME),
+            arrayOf(ContactsContract.Data.CONTACT_ID, StructuredName.GIVEN_NAME, StructuredName.MIDDLE_NAME, StructuredName.FAMILY_NAME),
             "${ContactsContract.Data.MIMETYPE} = ?", arrayOf(StructuredName.CONTENT_ITEM_TYPE), null,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
                 if (id in result) continue
-                Avatars.initials(cursor.getString(1), cursor.getString(2), locale)?.let { result[id] = it }
+                val parts = NameParts(cursor.getString(1), cursor.getString(2), cursor.getString(3))
+                if (listOf(parts.given, parts.middle, parts.family).any { !it.isNullOrBlank() }) result[id] = parts
             }
         }
         return result
