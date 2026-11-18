@@ -1,0 +1,34 @@
+Kontakty to prywatna książka adresowa na Androida. Pokazuje i zmienia kontakty zapisane w telefonie i nie ma dostępu do Internetu: synchronizacją zajmują się aplikacje obsługujące konta, na przykład DAVx⁵ z Nextcloudem albo dowolnym innym serwerem CardDAV. Bez własnego konta, bez reklam, bez analityki.
+
+Lista i wyszukiwanie:
+- Ulubione na górze, dalej kontakty pod literami, według nazwiska albo imienia
+- Zdjęcia albo kolorowe awatary z inicjałami imienia i nazwiska
+- Szybkie przewijanie z podpowiedzią litery
+- Wyszukiwanie w imionach i nazwiskach, pseudonimach, numerach, adresach e-mail, firmach i notatkach, z wyróżnionym trafieniem; numery są wyszukiwane z numerem kierunkowym kraju lub bez niego
+
+Strona kontaktu i edytor:
+- Połączenie, wiadomość i e-mail jednym dotknięciem, z jednym domyślnym numerem do połączeń i wiadomości
+- Numery, adresy e-mail, adresy, strony internetowe, daty, relacje, komunikatory i adresy SIP, notatki; przytrzymanie kopiuje wartość
+- W edytorze każdy rodzaj danych, z własnymi etykietami, i zdjęcie wybrane oraz przycięte w telefonie
+- „Utwórz kontakt” z innych aplikacji, na przykład z aplikacji Telefon
+- Usuwanie z możliwością cofnięcia, udostępnianie jako plik vCard
+
+Konta:
+- Pokazywanie lub ukrywanie kontaktów każdego konta; konta komunikatorów są na początku ukryte
+- Kontakty zapisane tylko w telefonie i przenoszenie ich na konto z możliwością cofnięcia
+- Gdy serwer konta nie przyjmie zmiany albo usunięcia, jak przy książce adresowej tylko do odczytu, aplikacja o tym informuje
+
+Duplikaty:
+- Propozycje według wspólnego numeru albo adresu e-mail, nigdy według samego imienia i nazwiska
+- Scalanie na stałe w jeden kontakt z wyborem tego, co pozostanie, albo tylko połączenie wpisów
+- Odpowiedź „To nie ta sama osoba” przechowuje system, a nie aplikacja
+
+Import i eksport:
+- Pliki vCard 2.1, 3.0 i 4.0 otwarte z innej aplikacji, udostępnione albo wybrane, także w kodowaniach starych telefonów
+- Kontakty, które już istnieją w telefonie, są oznaczane; import można cofnąć
+- Eksport wszystkich kontaktów albo wybranych kont do jednego pliku vCard, ze zdjęciami lub bez
+
+A także:
+- Kopia zapasowa ustawień w wybranym pliku; kopia nigdy nie zawiera kontaktów
+- Język polski lub angielski, niezależnie od języka systemu
+- Wygląd Material 3 Expressive w kolorach systemu

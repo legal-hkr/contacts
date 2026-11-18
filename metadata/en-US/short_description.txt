@@ -1,1 +1,1 @@
-Private contacts
+Private address book for the contacts on your phone, with no Internet access

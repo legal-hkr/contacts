@@ -1,0 +1,9 @@
+v0.1.0
+
+Pierwsza wersja:
+- Lista kontaktów z ulubionymi, literami i kolorowymi awatarami, wyszukiwanie we wszystkich polach
+- Strona kontaktu i edytor ze zdjęciem, domyślnym numerem i wszystkimi rodzajami danych
+- Konta: pokazywanie i ukrywanie, kontakty lokalne, przenoszenie na konto
+- Duplikaty scalane na stałe albo tylko łączone
+- Import plików vCard (2.1, 3.0 i 4.0) oraz eksport wszystkich kontaktów
+- Bez dostępu do Internetu: synchronizacją zajmują się aplikacje obsługujące konta

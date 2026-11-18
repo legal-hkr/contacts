@@ -1,0 +1,34 @@
+Contacts is a private address book for Android. It shows and changes the contacts kept in the phone’s own contacts storage and has no access to the Internet: syncing is left to the apps that manage your accounts, for example DAVx⁵ with Nextcloud or any other CardDAV server. No account of its own, no ads, no analytics.
+
+List and search:
+- Favorites at the top, then the contacts under their letters, sorted by last name or by first name
+- Photos, or colored avatars with initials
+- A fast scroller that shows the current letter
+- Search in names, nicknames, numbers, email addresses, companies and notes, with the match highlighted; numbers are found with or without the country code
+
+Contact page and editor:
+- Call, message and email in one tap, with one default number for calls and messages
+- Numbers, email addresses, addresses, websites, dates, relationships, messaging and SIP addresses, notes; touch and hold to copy
+- Every kind of detail in the editor, with your own labels, and a photo picked and cropped on the phone
+- “Create contact” from other apps, such as the phone app
+- Deleting with Undo; sharing as a vCard file
+
+Accounts:
+- Show or hide each account’s contacts; messaging apps’ accounts start hidden
+- Contacts kept only on the phone, which can be moved to an account, with Undo
+- When an account’s server doesn’t accept a change or a deletion, as with a read-only address book, the app says so
+
+Duplicates:
+- Suggestions by a shared number or email address, never by a name alone
+- Permanent merging into one contact, choosing what stays, or only joining the entries
+- “Not the same person” answers are kept by the phone’s contacts storage, not by the app
+
+Import and export:
+- vCard files 2.1, 3.0 and 4.0, opened from another app, shared, or picked, including the character sets of older phones
+- Contacts already on the phone are marked; an import can be undone
+- Export of all contacts, or of chosen accounts, to one vCard file, with or without photos
+
+And also:
+- Backup and restore of settings to a file you choose; contacts are never in it
+- English and Polish, independent of the system language
+- Material 3 Expressive design with your phone’s colors

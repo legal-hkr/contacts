@@ -1,4 +1,9 @@
 v0.1.0
 
-In development:
-- The app’s frame and the first settings pages
+First version:
+- Contact list with favorites, letters and colored avatars, and search in every field
+- Contact page and editor with photos, default numbers and every kind of detail
+- Accounts: show or hide each one, local contacts on the phone, moving to an account
+- Duplicates merged permanently or only joined
+- vCard import (2.1, 3.0 and 4.0) and export of all contacts
+- No Internet access: syncing is left to the apps that manage your accounts
