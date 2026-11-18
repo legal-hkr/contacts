@@ -434,4 +434,10 @@
     <string name="msg_saved_not_sent">Zapisano zmiany w telefonie. Zostaną wysłane przy następnej synchronizacji.</string>
     <string name="msg_changes_rejected">Serwer nie przyjął zmian (%1$s)</string>
     <string name="msg_deletion_rejected">Serwer nie przyjął usunięcia kontaktów (%1$s)</string>
+    <!-- Widgets (SPEC §14, §17.8) -->
+    <string name="title_widget_favorites">Ulubione</string>
+    <string name="desc_widget_favorites">Ulubione kontakty ze zdjęciami</string>
+    <string name="msg_widget_no_favorites">Brak ulubionych. Oznacz kontakt gwiazdką w aplikacji Kontakty.</string>
+    <string name="msg_widget_no_permission">Brak dostępu do kontaktów.</string>
+    <string name="button_open_contacts">Otwórz Kontakty</string>
 </resources>

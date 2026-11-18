@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Favorites widget's card (SPEC §14.1): the surface, with the launcher's own widget radius. Names on a wallpaper can't be read without it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/widget_surface" />
+    <corners android:radius="@android:dimen/system_app_widget_background_radius" />
+</shape>

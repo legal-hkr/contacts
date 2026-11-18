@@ -440,4 +440,10 @@
     <string name="msg_saved_not_sent">Changes saved on this phone. They will be sent at the next sync.</string>
     <string name="msg_changes_rejected">The server didn’t accept the changes (%1$s)</string>
     <string name="msg_deletion_rejected">The server didn’t accept the deletion of contacts (%1$s)</string>
+    <!-- Widgets (SPEC §14, §17.8) -->
+    <string name="title_widget_favorites">Favorites</string>
+    <string name="desc_widget_favorites">Starred contacts with their photos</string>
+    <string name="msg_widget_no_favorites">No favorites. Star a contact in the Contacts app.</string>
+    <string name="msg_widget_no_permission">No access to contacts.</string>
+    <string name="button_open_contacts">Open Contacts</string>
 </resources>

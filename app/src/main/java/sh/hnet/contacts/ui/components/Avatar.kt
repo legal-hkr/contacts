@@ -61,8 +61,8 @@ private object Photos {
 /** Whether letter avatars take the palette in many colors (Settings › List, the owner's choice of 18 Nov 2026); provided by the shell. */
 val LocalAvatarColors = staticCompositionLocalOf { true }
 
-/** Calendar's palette without Graphite (fill, the color on it), in [Avatars.color]'s order. */
-private val PALETTE = listOf(
+/** Calendar's palette without Graphite (fill, the color on it), in [Avatars.color]'s order; the widgets take it too. */
+val AVATAR_PALETTE = listOf(
     R.color.avatar_red_fill to R.color.avatar_red_on, R.color.avatar_orange_fill to R.color.avatar_orange_on,
     R.color.avatar_amber_fill to R.color.avatar_amber_on, R.color.avatar_olive_fill to R.color.avatar_olive_on,
     R.color.avatar_green_fill to R.color.avatar_green_on, R.color.avatar_teal_fill to R.color.avatar_teal_on,
@@ -92,7 +92,7 @@ fun Avatar(name: String, lookupKey: String, photo: String?, size: Dp, modifier: 
     }
     val colors = MaterialTheme.colorScheme
     val (fill, text) = if (LocalAvatarColors.current) {
-        PALETTE[Avatars.color(lookupKey)].let { (f, t) -> colorResource(f) to colorResource(t) }
+        AVATAR_PALETTE[Avatars.color(lookupKey)].let { (f, t) -> colorResource(f) to colorResource(t) }
     } else {
         when (Avatars.tone(lookupKey)) {
             0 -> colors.primaryContainer to colors.onPrimaryContainer

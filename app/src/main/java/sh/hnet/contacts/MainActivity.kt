@@ -15,6 +15,8 @@ import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.ui.ContactsApp
 import sh.hnet.contacts.ui.Screen
 import sh.hnet.contacts.ui.theme.ContactsTheme
+import sh.hnet.contacts.widget.WidgetRequest
+import sh.hnet.contacts.widget.Widgets
 
 class MainActivity : ComponentActivity() {
     /** What another app started the app for – the Phone app's "Create contact" –, until the shell has opened it. */
@@ -25,7 +27,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
             WhatsNew.recordStart(this)
-            asked = insert(intent) ?: import(intent)
+            asked = widget(intent) ?: insert(intent) ?: import(intent)
         }
         setContent {
             ContactsTheme { ContactsApp(asked, onOpened = { asked = null }) }
@@ -38,14 +40,27 @@ class MainActivity : ComponentActivity() {
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        widget(intent)?.let { asked = it }
         insert(intent)?.let { asked = it.copy(external = false) }
         import(intent)?.let { asked = it.copy(external = false) }
     }
 
-    /** The app leaves the screen: a delete still offering Undo is carried out, as nobody is left to undo it (as in Calendar). */
+    /** The app leaves the screen: a delete still offering Undo is carried out, as nobody is left to undo it (as in Calendar), and the widgets are drawn anew. */
     override fun onStop() {
         super.onStop()
         (application as ContactsApplication).deletes.commit()
+        // Whatever changed meanwhile that the contacts don't tell of: Settings › List, the accounts shown, the language
+        Widgets.update(this)
+    }
+
+    /** What a tap on a widget points at (SPEC §14): a contact's page over the list, or the list itself; the back stack is cleared either way, as Calendar's widgets do. */
+    private fun widget(intent: Intent?): Screen? {
+        if (intent?.action != Intent.ACTION_VIEW || intent.data?.scheme != WidgetRequest.SCHEME) return null
+        // An address not understood (an old pending intent after a change of the format) just opens the app
+        return when (val request = WidgetRequest.of(intent.data) ?: return Screen.Contacts) {
+            is WidgetRequest.Contact -> Screen.Contact(request.lookupKey, request.id)
+            WidgetRequest.Open -> Screen.Contacts
+        }
     }
 
     /** A vCard file opened in the app or shared to it (SPEC §10.1): the import page; several shared files are one import. */

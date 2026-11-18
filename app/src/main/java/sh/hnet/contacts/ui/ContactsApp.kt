@@ -122,12 +122,12 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     val messages = rememberCoroutineScope()
     var wizard by rememberSaveable { mutableStateOf(!ContactsAccess.wizardDone(appContext)) }
 
-    // What another app asked for: its page over the list, whatever was open
+    // What another app or a widget asked for: its page over the list, whatever was open
     LaunchedEffect(asked) {
         if (asked != null) {
-            // Started for another app's result: its editor alone over the list; reached while running: over what is open, which stays
-            if ((asked is Screen.Editor && asked.external) || (asked is Screen.Import && asked.external)) while (stack.size > 1) stack.removeAt(stack.lastIndex)
-            stack.add(asked)
+            // Started for another app's result: its editor alone over the list; reached while running: over what is open, which stays. A widget's contact or the list itself: the list alone under it (SPEC §14, as Calendar's widgets)
+            if ((asked is Screen.Editor && asked.external) || (asked is Screen.Import && asked.external) || asked is Screen.Contact || asked == Screen.Contacts) while (stack.size > 1) stack.removeAt(stack.lastIndex)
+            if (asked != Screen.Contacts) stack.add(asked)
             onOpened()
         }
     }

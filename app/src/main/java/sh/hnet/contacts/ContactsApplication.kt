@@ -31,6 +31,7 @@ import sh.hnet.contacts.data.UploadWatch
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.DupGroup
 import sh.hnet.contacts.model.Duplicates
+import sh.hnet.contacts.widget.Widgets
 
 class ContactsApplication : Application() {
     /** Work that outlives a screen; lives as long as the process. */
@@ -136,5 +137,7 @@ class ContactsApplication : Application() {
             // Files handed to other apps last time (SPEC §11.4): they had their moment
             Sharing.clear(this@ContactsApplication)
         }
+        // A widget placed before an update of the app, or access given or taken while it was closed
+        Widgets.update(this)
     }
 }

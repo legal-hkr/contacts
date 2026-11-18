@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget colors (SPEC §14): the system's dynamic color roles, light here and dark in values-night, as Calendar's. The launcher resolves them in its own theme, so a change of theme needs no redraw. The container pairs are the letter avatars' with Settings › List on "theme only"; the palette's are avatar_colors.xml. -->
+    <color name="widget_surface">@android:color/system_surface_light</color>
+    <color name="widget_on_surface">@android:color/system_on_surface_light</color>
+    <color name="widget_on_surface_variant">@android:color/system_on_surface_variant_light</color>
+    <color name="widget_primary">@android:color/system_primary_light</color>
+    <color name="widget_primary_container">@android:color/system_primary_container_light</color>
+    <color name="widget_on_primary_container">@android:color/system_on_primary_container_light</color>
+    <color name="widget_secondary_container">@android:color/system_secondary_container_light</color>
+    <color name="widget_on_secondary_container">@android:color/system_on_secondary_container_light</color>
+    <color name="widget_tertiary_container">@android:color/system_tertiary_container_light</color>
+    <color name="widget_on_tertiary_container">@android:color/system_on_tertiary_container_light</color>
+</resources>

@@ -62,6 +62,23 @@
                 <data android:mimeType="text/directory" />
             </intent-filter>
         </activity>
+        <!-- Home-screen widgets (SPEC §14). Exported as the system requires: the launcher's widget service sends their updates. -->
+        <receiver
+            android:name=".widget.FavoritesWidget"
+            android:exported="true"
+            android:label="@string/title_widget_favorites">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_favorites" />
+        </receiver>
+        <!-- Runs when the contacts change while the app is closed (a sync by the account's app), so the widgets follow. Only the system can bind it. -->
+        <service
+            android:name=".widget.ChangeJob"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <!-- vCard files handed to other apps through Share (SPEC §11.4), from the app's cache only -->
         <provider
             android:name="androidx.core.content.FileProvider"
