@@ -6,6 +6,8 @@ import android.app.Activity
 import android.content.Intent
 import android.provider.ContactsContract
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -45,15 +48,20 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import java.text.NumberFormat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.data.Deletion
+import sh.hnet.contacts.data.ImportJob
 import sh.hnet.contacts.data.Moved
 import sh.hnet.contacts.ui.accounts.AccountsScreen
 import sh.hnet.contacts.ui.components.ContactsAccess
+import sh.hnet.contacts.ui.components.ErrorDetails
+import sh.hnet.contacts.ui.components.ErrorDetailsDialog
+import sh.hnet.contacts.ui.components.reportFailure
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
 import sh.hnet.contacts.ui.duplicates.DuplicatesScreen
@@ -71,6 +79,8 @@ import sh.hnet.contacts.ui.settings.ListSettingsScreen
 import sh.hnet.contacts.ui.settings.ResetScreen
 import sh.hnet.contacts.ui.settings.SettingsRootScreen
 import sh.hnet.contacts.ui.settings.WhatsNewScreen
+import sh.hnet.contacts.ui.transfer.ExportScreen
+import sh.hnet.contacts.ui.transfer.ImportScreen
 import sh.hnet.contacts.ui.welcome.WizardScreen
 
 /**
@@ -111,7 +121,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     LaunchedEffect(asked) {
         if (asked != null) {
             // Started for another app's result: its editor alone over the list; reached while running: over what is open, which stays
-            if (asked is Screen.Editor && asked.external) while (stack.size > 1) stack.removeAt(stack.lastIndex)
+            if ((asked is Screen.Editor && asked.external) || (asked is Screen.Import && asked.external)) while (stack.size > 1) stack.removeAt(stack.lastIndex)
             stack.add(asked)
             onOpened()
         }
@@ -176,6 +186,44 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     val open: (Screen) -> Unit = { stack.add(it) }
 
+    // vCard import (SPEC §10.1): the system picker; another file picked on the import page replaces it
+    val pickVcard = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        if (stack.lastOrNull() is Screen.Import) stack.removeAt(stack.lastIndex)
+        open(Screen.Import(listOf(uri.toString())))
+    }
+    val chooseVcard: () -> Unit = { pickVcard.launch(VCARD_TYPES) }
+
+    // The import's outcome (SPEC §10.5, §10.6), wherever the user is when it ends
+    val importedText = stringResource(R.string.msg_imported)
+    val importedSkippedText = stringResource(R.string.msg_imported_skipped)
+    val importFailedText = stringResource(R.string.error_import_failed)
+    val undoImport = stringResource(R.string.button_undo_import)
+    var importError by remember { mutableStateOf<Pair<ErrorDetails, List<Long>>?>(null) }
+    val locale = LocalConfiguration.current.locales[0]
+    LaunchedEffect(Unit) {
+        app.imports.state.collect { state ->
+            if (state !is ImportJob.State.Finished) return@collect
+            app.imports.clear()
+            val outcome = state.outcome
+            stack.removeAll { it is Screen.Import }
+            val format = NumberFormat.getIntegerInstance(locale)
+            val count = format.format(outcome.rawContactIds.size)
+            when {
+                outcome.error != null -> messages.reportFailure(snackbars, importFailedText.format(count), outcome.error.toString(), show) { importError = it to outcome.rawContactIds }
+                outcome.opened != null -> open(Screen.Contact(outcome.opened.lookupKey, outcome.opened.contactId))
+                else -> messages.launch {
+                    snackbars.currentSnackbarData?.dismiss()
+                    val message = if (outcome.skipped > 0) importedSkippedText.format(count, outcome.accountLabel, format.format(outcome.skipped)) else importedText.format(count, outcome.accountLabel)
+                    // Undo takes away exactly what this import wrote
+                    if (snackbars.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) {
+                        runCatching { app.writer.delete(outcome.rawContactIds) }
+                    }
+                }
+            }
+        }
+    }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Box(Modifier.fillMaxSize()) {
             NavDisplay(
@@ -203,6 +251,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onOpenSettings = { open(Screen.Settings) },
                             onOpenContact = { open(Screen.Contact(it.lookupKey, it.id, it.name, it.photo)) },
                             onNewContact = { open(Screen.Editor(null, 0, System.nanoTime())) },
+                            onImport = chooseVcard,
                             onOpenAccounts = { open(Screen.Accounts) },
                             onOpenDuplicates = { open(Screen.Duplicates) },
                             onMerge = { ids -> open(Screen.Review(ids, suggested = false)) },
@@ -269,6 +318,8 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             onOpenAccounts = { open(Screen.Accounts) },
                             onOpenDuplicates = { open(Screen.Duplicates) },
                             onOpenLanguage = { open(Screen.SettingsLanguage) },
+                            onOpenImport = chooseVcard,
+                            onOpenExport = { open(Screen.Export) },
                             onOpenBackup = { open(Screen.SettingsBackup) },
                             onOpenReset = { open(Screen.SettingsReset) },
                             onOpenAbout = { open(Screen.SettingsAbout) },
@@ -316,9 +367,18 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                             open(Screen.Review(listOf(picker.id, other), suggested = false))
                         })
                     }
-                    entry<Screen.Accounts> { AccountsScreen(onBack = back, onMoved = { moved, target -> movedWithUndo(moved, target, null) }) }
+                    entry<Screen.Accounts> { AccountsScreen(onBack = back, onMoved = { moved, target -> movedWithUndo(moved, target, null) }, onExport = { open(Screen.Export) }) }
+                    entry<Screen.Import> { import ->
+                        ImportScreen(
+                            import.uris,
+                            // Opened from another app: Close goes back to it
+                            onClose = { if (import.external) activity?.finish() else back() },
+                            onChooseOther = if (import.external) null else chooseVcard,
+                        )
+                    }
+                    entry<Screen.Export> { ExportScreen(onBack = back, snackbars = snackbars, messageScope = messages) }
                     entry<Screen.SettingsLanguage> { LanguageScreen(onBack = back) }
-                    entry<Screen.SettingsBackup> { BackupScreen(onBack = back, snackbars = snackbars, messageScope = messages) }
+                    entry<Screen.SettingsBackup> { BackupScreen(onBack = back, snackbars = snackbars, messageScope = messages, onExport = { open(Screen.Export) }) }
                     entry<Screen.SettingsReset> { ResetScreen(onBack = back) }
                     entry<Screen.SettingsAbout> {
                         AboutScreen(
@@ -346,4 +406,11 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
             }
         }
     }
+    // A failed import's details, with Undo for what it wrote before failing (owner's decision of 18 Nov 2026)
+    importError?.let { (error, written) ->
+        ErrorDetailsDialog(error, extra = if (written.isEmpty()) null else undoImport to { messages.launch { runCatching { app.writer.delete(written) } } }) { importError = null }
+    }
 }
+
+/** What the picker offers for an import (SPEC §10.1); some file apps call a .vcf file only "binary". */
+private val VCARD_TYPES = arrayOf("text/vcard", "text/x-vcard", "text/directory", "application/octet-stream")

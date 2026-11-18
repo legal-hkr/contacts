@@ -321,7 +321,7 @@ private class QuickAction(@param:DrawableRes val icon: Int, val label: String, v
 
 /** The header (SPEC §6.2): the photo or letter avatar at 112 dp, the name, then nickname, phonetic name and company, each only when present. */
 @Composable
-private fun Header(name: String, lookupKey: String, photo: String?, nickname: String?, phonetic: String?, company: String?, hint: String?) {
+internal fun Header(name: String, lookupKey: String, photo: String?, nickname: String?, phonetic: String?, company: String?, hint: String?) {
     val photoLabel = stringResource(R.string.content_description_photo, name)
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Avatar(name, lookupKey, photo, 112.dp, Modifier.semantics { if (photo != null) contentDescription = photoLabel }, hint = hint)
@@ -407,7 +407,7 @@ private fun icon(kind: DetailKind, detail: Detail): Int = when (kind) {
  * to copy. One-line values scroll sideways instead of wrapping (SPEC §16.2); a note wraps as prose.
  */
 @Composable
-private fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String, onCopy: (String) -> Unit, onMessage: (String) -> Unit, onTap: (Detail) -> Unit) {
+internal fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String, onCopy: (String) -> Unit, onMessage: (String) -> Unit, actions: Boolean = true, onTap: (Detail) -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     val message = stringResource(R.string.tooltip_message)
     Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -434,7 +434,7 @@ private fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String, 
                     }
                 },
                 supportingContent = supporting?.let { { Text(it) } },
-                trailingContent = if (kind == DetailKind.PHONE) ({ TooltipIconButton(R.drawable.ic_chat, message, { onMessage(detail.value) }) }) else null,
+                trailingContent = if (kind == DetailKind.PHONE && actions) ({ TooltipIconButton(R.drawable.ic_chat, message, { onMessage(detail.value) }) }) else null,
             ) {
                 if (kind == DetailKind.NOTE) {
                     Text(shown)

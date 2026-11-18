@@ -51,6 +51,9 @@ data class Deletion(val contacts: Set<Long>, val rawContactIds: List<Long>, val 
 /** A move done as far as copying: the old entries to delete and the copies made, for Undo; [failed] contacts couldn't be copied. */
 data class Moved(val oldRawContactIds: List<Long>, val newRawContactIds: List<Long>, val failed: Int)
 
+/** What an import wrote ([rawContactIds], for Undo), and the failure that stopped it, if one did. */
+data class Imported(val rawContactIds: List<Long>, val error: Exception?)
+
 /** A duplicate group read for the review: everything of all its contacts together ([all]) and each contact's own reading ([each]). */
 data class MergeSource(val all: EditSnapshot, val each: List<EditSnapshot>)
 
@@ -106,6 +109,17 @@ private object Columns {
  * [EditorDiff]. Nothing is logged.
  */
 class ContactWriter(private val context: Context, private val source: ContactSource) {
+    private companion object {
+        /** Contacts per batch of an import (SPEC §10.4). */
+        const val IMPORT_BATCH = 50
+
+        /** Deletes per batch: well under the storage's 500 operations per batch. */
+        const val DELETE_BATCH = 250
+
+        /** The longer side of an imported photo, in pixels (SPEC §10.4). */
+        const val IMPORT_PHOTO = 720
+    }
+
     private val resolver = context.contentResolver
     private val keys = AtomicLong(1)
 
@@ -122,23 +136,74 @@ class ContactWriter(private val context: Context, private val source: ContactSou
      * The contacts [ids] as vCard contacts (SPEC §11.4): the values of all their entries, equal ones
      * once, and the photo in its full size. Contacts gone meanwhile are left out.
      */
-    suspend fun cards(ids: List<Long>): List<CardContact> = withContext(Dispatchers.IO) {
-        ids.mapNotNull { id ->
+    suspend fun cards(ids: List<Long>, accounts: Set<AccountKey>? = null, photos: Boolean = true, onProgress: (Int) -> Unit = {}): List<CardContact> = withContext(Dispatchers.IO) {
+        ids.mapIndexedNotNull { index, id ->
+            onProgress(index)
             val uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id)
-            val read = read(uri, "") ?: return@mapNotNull null
+            val read = read(uri, "") ?: return@mapIndexedNotNull null
+            // The export of chosen accounts (SPEC §11.3): only what their entries hold
+            val entries = if (accounts == null) null else read.entries.filter { it.account in accounts }.map { it.rawContactId }.toSet()
+            val values = if (entries == null) read.values else read.values.filter { value -> value.origins.any { it.rawContactId in entries } }
             val name = resolver.query(uri, arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }.orEmpty()
-            val photo = try {
+            val photo = if (!photos) null else try {
                 ContactsContract.Contacts.openContactPhotoInputStream(resolver, uri, true)?.use { it.readBytes() }
             } catch (_: Exception) {
                 null
             }
             CardContact(
                 displayName = name,
-                name = read.values.firstOrNull { it.kind == EditKind.NAME }?.parts.orEmpty(),
-                values = read.values.filter { it.kind != EditKind.NAME }.groupBy { it.kind }.mapValues { (_, values) -> values.map { CardValue(it.parts, it.type, it.label, it.isDefault, it.protocol) } },
+                name = (values.firstOrNull { it.kind == EditKind.NAME } ?: read.values.firstOrNull { it.kind == EditKind.NAME })?.parts.orEmpty(),
+                values = values.filter { it.kind != EditKind.NAME }.groupBy { it.kind }.mapValues { (_, list) -> list.map { CardValue(it.parts, it.type, it.label, it.isDefault, it.protocol) } },
                 photo = photo,
             )
         }
+    }
+
+    /**
+     * Imports [cards] into [account] (SPEC §10.4): 50 contacts per batch, each a new entry with its
+     * name and values, then its photo as JPEG of at most 720 px. Stops at the first batch the
+     * storage refuses; what was written before stays, and is returned for Undo.
+     */
+    suspend fun importCards(cards: List<CardContact>, account: AccountKey, onProgress: (Int) -> Unit): Imported = withContext(Dispatchers.IO) {
+        val created = ArrayList<Long>()
+        var error: Exception? = null
+        for (chunk in cards.chunked(IMPORT_BATCH)) {
+            val operations = ArrayList<ContentProviderOperation>()
+            val starts = ArrayList<Int>()
+            for (card in chunk) {
+                val start = operations.size
+                starts += start
+                operations += ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
+                    .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, account.type.ifEmpty { null })
+                    .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, account.name.ifEmpty { null })
+                    .withYieldAllowed(true)
+                    .build()
+                val name = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, start)
+                    .withValue(ContactsContract.Data.MIMETYPE, StructuredName.CONTENT_ITEM_TYPE)
+                // The parts and the file's own display name (FN) both: the storage keeps them as given, and splits the name itself when there are no parts
+                for (column in Columns.partsOf(EditKind.NAME)) name.withValue(column, card.name[column]?.trim()?.ifEmpty { null })
+                name.withValue(StructuredName.DISPLAY_NAME, card.displayName.ifEmpty { null })
+                operations += name.build()
+                for ((kind, values) in card.values) for (value in values) {
+                    operations += insert(FormValue(0, kind, value.parts, value.type, value.label, value.protocol, value.isDefault), null, true, start)
+                }
+            }
+            try {
+                val results = resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+                val ids = starts.map { ContentUris.parseId(requireNotNull(results[it].uri)) }
+                chunk.forEachIndexed { i, card ->
+                    // A photo that can't be decoded or written: the contact stays without it
+                    card.photo?.let { bytes -> runCatching { ImageCodec.jpeg(bytes, IMPORT_PHOTO)?.let { writePhoto(PhotoChange.Set(it), listOf(ids[i])) } } }
+                }
+                created += ids
+                onProgress(created.size)
+            } catch (e: Exception) {
+                error = e
+                break
+            }
+        }
+        Imported(created, error)
     }
 
     /**
@@ -459,9 +524,12 @@ class ContactWriter(private val context: Context, private val source: ContactSou
 
     /** Deletes the entries [rawContactIds] the way any app does, so the accounts' apps send the deletion to their servers. */
     suspend fun delete(rawContactIds: List<Long>) = withContext(Dispatchers.IO) {
-        if (rawContactIds.isEmpty()) return@withContext
-        val operations = ArrayList(rawContactIds.map { ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, it)).build() })
-        resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+        // The storage refuses a batch of more than 500 operations between yield points (an import's Undo of 2 400 did nothing,
+        // the owner's test of 18 Nov 2026): batches of DELETE_BATCH, each delete a yield point
+        for (chunk in rawContactIds.chunked(DELETE_BATCH)) {
+            val operations = ArrayList(chunk.map { ContentProviderOperation.newDelete(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, it)).withYieldAllowed(true).build() })
+            resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+        }
     }
 
     /**
@@ -599,6 +667,15 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         return dataIds.toSet() - present
     }
 
+    /** The contact the entry [rawContactId] belongs to now. */
+    suspend fun contactOfEntry(rawContactId: Long): Saved? = withContext(Dispatchers.IO) {
+        try {
+            ContactsContract.RawContacts.getContactLookupUri(resolver, ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId))?.let(::contact)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun contact(lookupUri: Uri): Saved? = resolver.query(lookupUri, arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.LOOKUP_KEY), null, null, null)?.use { cursor ->
         if (cursor.moveToFirst()) Saved(cursor.getLong(0), cursor.getString(1).orEmpty()) else null
     }
@@ -642,10 +719,10 @@ class ContactWriter(private val context: Context, private val source: ContactSou
         return result
     }
 
-    private fun insert(value: FormValue, rawContactId: Long?, newEntry: Boolean): ContentProviderOperation {
+    private fun insert(value: FormValue, rawContactId: Long?, newEntry: Boolean, entryAt: Int = 0): ContentProviderOperation {
         val builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI).withValue(ContactsContract.Data.MIMETYPE, Columns.mime.getValue(value.kind))
-        // The back reference points at the batch's first operation, which is the new entry only when there is one; an edit always names its entry
-        if (newEntry) builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+        // The back reference points at the batch's operation [entryAt] (the first, for the editor), the new entry only when there is one; an edit always names its entry
+        if (newEntry) builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, entryAt)
         else builder.withValue(ContactsContract.Data.RAW_CONTACT_ID, requireNotNull(rawContactId) { "A new value of an edited contact needs its entry" })
         for ((column, v) in values(value)) builder.withValue(column, v)
         return builder.build()

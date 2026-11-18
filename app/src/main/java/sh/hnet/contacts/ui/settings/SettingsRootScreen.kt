@@ -16,10 +16,10 @@ import sh.hnet.contacts.ui.components.SettingsPage
 /**
  * The Settings root (SPEC §13.1), a page over the contact list, as Calendar's: the app's own rows
  * first, then App (language), Data (backup, reset) and About on its own. Rows of features not built
- * yet join with their stages: Import, Export.
+ * yet join with their stages.
  */
 @Composable
-fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenAccounts: () -> Unit, onOpenDuplicates: () -> Unit, onOpenLanguage: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
+fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContacts: () -> Unit, onOpenAccounts: () -> Unit, onOpenDuplicates: () -> Unit, onOpenLanguage: () -> Unit, onOpenImport: () -> Unit, onOpenExport: () -> Unit, onOpenBackup: () -> Unit, onOpenReset: () -> Unit, onOpenAbout: () -> Unit) {
     val context = LocalContext.current
     val version = BuildConfig.VERSION_NAME.removePrefix("v")
     // Read on every composition: changing it recreates the activity anyway
@@ -57,6 +57,12 @@ fun SettingsRootScreen(onBack: () -> Unit, onOpenList: () -> Unit, onOpenContact
             }
         }
         SettingsGroup(stringResource(R.string.title_settings_group_data)) {
+            row { shapes ->
+                SettingsNavigationRow(shapes, R.drawable.ic_download, stringResource(R.string.label_import_file), stringResource(R.string.desc_import_file), onClick = onOpenImport)
+            }
+            row { shapes ->
+                SettingsNavigationRow(shapes, R.drawable.ic_upload, stringResource(R.string.label_export_all), stringResource(R.string.desc_export_all), onClick = onOpenExport)
+            }
             row { shapes ->
                 SettingsNavigationRow(shapes, R.drawable.ic_settings_backup_restore, stringResource(R.string.title_backup), stringResource(R.string.desc_backup_row), onClick = onOpenBackup)
             }

@@ -17,6 +17,7 @@ import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Organization
 import android.provider.ContactsContract.CommonDataKinds.Phone
+import android.provider.ContactsContract.CommonDataKinds.Photo
 import android.provider.ContactsContract.CommonDataKinds.Relation
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import sh.hnet.contacts.model.AccountKey
+import sh.hnet.contacts.model.CardContact
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.Detail
@@ -37,6 +39,7 @@ import sh.hnet.contacts.model.DetailKind
 import sh.hnet.contacts.model.Details
 import sh.hnet.contacts.model.DupContact
 import sh.hnet.contacts.model.Duplicates
+import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.ListSettings
 import sh.hnet.contacts.model.MatchKind
 import sh.hnet.contacts.model.SearchContact
@@ -67,6 +70,9 @@ data class AccountInfo(
     val writable: Boolean,
     val count: Int,
 )
+
+/** A contact that an imported one already is (SPEC §10.3): its name and the account of its first entry. */
+data class Existing(val id: Long, val name: String, val account: AccountKey, val local: Boolean)
 
 /** The list as read: the contacts of the shown accounts, and how many contacts the system has in all. */
 data class LoadedContacts(val contacts: List<ContactRow>, val total: Int)
@@ -549,5 +555,85 @@ class ContactSource(private val context: Context) {
             "${ContactsContract.RawContacts.DELETED} = 0", null, null,
         )?.use { cursor -> while (cursor.moveToNext()) contactOf[cursor.getLong(0)] = cursor.getLong(1) }
         rawPairs.mapNotNull { (a, b) -> val ca = contactOf[a] ?: return@mapNotNull null; val cb = contactOf[b] ?: return@mapNotNull null; ca to cb }.toSet()
+    }
+
+    /**
+     * For each of [cards], the shown contact it already is (SPEC §10.3): the same name (folded as
+     * the duplicate search folds it) and a number or e-mail in common; null for a new one.
+     */
+    suspend fun existing(cards: List<CardContact>, hidden: Set<String>): List<Existing?> = withContext(Dispatchers.IO) {
+        val byName = dupContacts(hidden).filter { it.name.isNotEmpty() }.groupBy { it.name }
+        val region = region()
+        val found = cards.map { card ->
+            // The file's display name, and the name its parts make in either order (a contact saved since shows that one)
+            val parts = card.name
+            val names = listOf(
+                card.displayName,
+                listOf("data4", "data2", "data5", "data3", "data6").mapNotNull { parts[it] }.joinToString(" "),
+                listOf("data3", "data2", "data5").mapNotNull { parts[it] }.joinToString(" "),
+            ).map { Duplicates.foldName(it) }.filter { it.isNotEmpty() }.distinct()
+            val candidates = names.flatMap { byName[it].orEmpty() }.ifEmpty { return@map null }
+            // Short numbers count here (112, an extension): the same name is needed too, unlike the duplicate search (owner's test, 18 Nov 2026)
+            val numbers = card.values[EditKind.PHONE].orEmpty().map { numberKey(it.part("data1"), region) }.filter { it.isNotEmpty() }.toSet()
+            val emails = card.values[EditKind.EMAIL].orEmpty().map { it.part("data1").lowercase() }.toSet()
+            candidates.firstOrNull { c -> c.numbers.any { it in numbers } || c.emails.any { it in emails } }?.id
+        }
+        val ids = found.filterNotNull().distinct()
+        if (ids.isEmpty()) return@withContext found.map { null }
+        // The name and the first entry's account of each, for "This contact already exists (Anna Kowalska, jan@cloud.hnet.sh)"
+        val accounts = HashMap<Long, AccountKey>()
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME),
+            "${ContactsContract.RawContacts.CONTACT_ID} IN (${ids.joinToString(",")}) AND ${ContactsContract.RawContacts.DELETED} = 0", null, ContactsContract.RawContacts._ID,
+        )?.use { cursor -> while (cursor.moveToNext()) accounts.putIfAbsent(cursor.getLong(0), AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty())) }
+        val names = HashMap<Long, String>()
+        resolver.query(
+            ContactsContract.Contacts.CONTENT_URI, arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.DISPLAY_NAME_PRIMARY),
+            "${ContactsContract.Contacts._ID} IN (${ids.joinToString(",")})", null, null,
+        )?.use { cursor -> while (cursor.moveToNext()) names[cursor.getLong(0)] = cursor.getString(1).orEmpty() }
+        found.map { id -> id?.let { Existing(it, names[it].orEmpty(), accounts[it] ?: AccountKey("", ""), isLocal(accounts[it] ?: AccountKey("", ""))) } }
+    }
+
+    /** The contacts with an entry in any of [accounts], in name order (the export, SPEC §11.1): joined ones once. */
+    suspend fun contactsIn(accounts: Set<AccountKey>): List<Long> = withContext(Dispatchers.IO) {
+        val ids = LinkedHashSet<Long>()
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME),
+            "${ContactsContract.RawContacts.DELETED} = 0", null, ContactsContract.RawContacts.DISPLAY_NAME_PRIMARY + " COLLATE LOCALIZED",
+        )?.use { cursor ->
+            while (cursor.moveToNext()) if (AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty()) in accounts) ids += cursor.getLong(0)
+        }
+        ids.toList()
+    }
+
+    /**
+     * The bytes the photos of [ids] add to a vCard file (SPEC §11.1): each full-size photo's file,
+     * or the thumbnail where there is none, with base64's third more.
+     */
+    suspend fun photoBytes(ids: Collection<Long>): Long = withContext(Dispatchers.IO) {
+        if (ids.isEmpty()) return@withContext 0L
+        val wanted = ids.toSet()
+        var total = 0L
+        resolver.query(
+            ContactsContract.Contacts.CONTENT_URI, arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.PHOTO_FILE_ID, ContactsContract.Contacts.PHOTO_ID),
+            "${ContactsContract.Contacts.PHOTO_ID} IS NOT NULL", null, null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                if (cursor.getLong(0) !in wanted) continue
+                total += if (!cursor.isNull(1)) {
+                    try {
+                        resolver.openAssetFileDescriptor(ContentUris.withAppendedId(ContactsContract.DisplayPhoto.CONTENT_URI, cursor.getLong(1)), "r")?.use { it.length.coerceAtLeast(0) } ?: 0
+                    } catch (_: Exception) {
+                        0
+                    }
+                } else {
+                    resolver.query(ContentUris.withAppendedId(ContactsContract.Data.CONTENT_URI, cursor.getLong(2)), arrayOf(Photo.PHOTO), null, null, null)
+                        ?.use { if (it.moveToFirst()) it.getBlob(0)?.size?.toLong() ?: 0 else 0 } ?: 0
+                }
+            }
+        }
+        total * 137 / 100
     }
 }

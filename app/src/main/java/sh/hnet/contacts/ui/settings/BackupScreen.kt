@@ -18,6 +18,7 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -138,7 +139,7 @@ fun rememberRestoreAction(snackbars: SnackbarHostState, messageScope: CoroutineS
  * from backup, and the note that contacts are not in it. The link to the vCard export joins with its stage.
  */
 @Composable
-fun BackupScreen(onBack: () -> Unit, snackbars: SnackbarHostState, messageScope: CoroutineScope) {
+fun BackupScreen(onBack: () -> Unit, snackbars: SnackbarHostState, messageScope: CoroutineScope, onExport: () -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
     val lastBackup by app.backup.lastBackup.collectAsStateWithLifecycle()
@@ -190,6 +191,7 @@ fun BackupScreen(onBack: () -> Unit, snackbars: SnackbarHostState, messageScope:
             }
         }
         SettingsNote(stringResource(R.string.msg_backup_no_contacts))
+        TextButton(onClick = onExport) { Text(stringResource(R.string.button_export_all_short)) }
     }
     errorShown?.let { ErrorDetailsDialog(it) { errorShown = null } }
 }

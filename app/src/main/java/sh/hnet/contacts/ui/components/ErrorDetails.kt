@@ -2,6 +2,7 @@ package sh.hnet.contacts.ui.components
 
 import android.content.ClipData
 import android.widget.Toast
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -38,9 +39,12 @@ fun CoroutineScope.reportFailure(snackbars: SnackbarHostState, message: String, 
     }
 }
 
-/** The error-details dialog: the sentence, the details (selectable), Copy and Close. Details are shown, never logged. */
+/**
+ * The error-details dialog: the sentence, the details (selectable), Copy and Close. Details are
+ * shown, never logged. [extra] adds a button before Close (the import's "Undo import", SPEC §10.6).
+ */
 @Composable
-fun ErrorDetailsDialog(error: ErrorDetails, onDismiss: () -> Unit) {
+fun ErrorDetailsDialog(error: ErrorDetails, extra: Pair<String, () -> Unit>? = null, onDismiss: () -> Unit) {
     val clipboard = LocalClipboard.current
     val context = LocalContext.current
     val copied = stringResource(R.string.msg_copied)
@@ -62,6 +66,16 @@ fun ErrorDetailsDialog(error: ErrorDetails, onDismiss: () -> Unit) {
                 }
             }) { Text(stringResource(R.string.button_copy)) }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.button_close)) } },
+        confirmButton = {
+            Row {
+                extra?.let { (label, action) ->
+                    TextButton(onClick = {
+                        action()
+                        onDismiss()
+                    }) { Text(label) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.button_close)) }
+            }
+        },
     )
 }

@@ -201,6 +201,46 @@
     <string name="msg_merge_permanent_none">Kontakty staną się jednym. Tego nie można cofnąć.</string>
     <string name="msg_merged_permanent">Scalono kontakty w jeden: %1$s</string>
 
+    <!-- Import and export -->
+    <string name="title_import_contact">Importuj kontakt</string>
+    <string name="title_import_contacts">Importuj kontakty</string>
+    <string name="label_import_to_account">Importuj na konto</string>
+    <string name="label_skip_existing">Pomiń istniejące kontakty</string>
+    <string name="desc_skip_existing">Ta sama nazwa i numer lub e-mail</string>
+    <string name="label_import_count">Kontakty w pliku: %1$d, wybrane: %2$d</string>
+    <string name="label_already_exists_suffix">(już jest)</string>
+    <string name="msg_contact_exists">Ten kontakt już jest (%1$s, %2$s).</string>
+    <string name="label_import_anyway">Importuj mimo to</string>
+    <string name="button_import">Importuj</string>
+    <string name="label_importing">Importowanie…</string>
+    <string name="label_import_progress">Zaimportowano: %1$s z %2$s</string>
+    <string name="msg_fields_skipped">Niektóre pola z tego pliku zostaną pominięte (%1$s, kontakty: %2$d). Aplikacja ich nie obsługuje.</string>
+    <string name="error_unreadable_file">Nie można odczytać tego pliku. To nie jest plik vCard albo jest uszkodzony.</string>
+    <string name="msg_file_no_contacts">W tym pliku nie ma kontaktów.</string>
+    <string name="button_choose_other_file">Wybierz inny plik</string>
+    <string name="msg_imported">Zaimportowano kontakty: %1$s (%2$s)</string>
+    <string name="msg_imported_skipped">Zaimportowano kontakty: %1$s (%2$s). Pominięte: %3$s.</string>
+    <string name="error_import_failed">Nie udało się zaimportować kontaktów (zaimportowano: %1$s).</string>
+    <string name="button_undo_import">Cofnij import</string>
+    <string name="title_export_all">Eksport wszystkich kontaktów</string>
+    <string name="desc_export_intro">Wszystkie kontakty z wybranych kont w jednym pliku vCard. To jedyna kopia kontaktów poza kontami i telefonem.</string>
+    <string name="label_group_file">Plik</string>
+    <string name="label_with_photos">Ze zdjęciami</string>
+    <string name="desc_with_photos">Plik będzie większy (około %1$s)</string>
+    <string name="label_size_mb">%1$d MB</string>
+    <string name="label_size_under_1mb">poniżej 1 MB</string>
+    <string name="label_hidden_in_list_suffix">%1$s, ukryte na liście</string>
+    <string name="label_export_count">Kontakty w pliku: %1$s. Połączone liczą się raz.</string>
+    <string name="button_save_as">Zapisz jako…</string>
+    <string name="label_exporting">Eksportowanie…</string>
+    <string name="label_export_progress">Wyeksportowano: %1$s z %2$s</string>
+    <string name="label_import_file">Import z pliku</string>
+    <string name="desc_import_file">Plik vCard (.vcf)</string>
+    <string name="label_export_all">Eksport wszystkich kontaktów</string>
+    <string name="desc_export_all">Jeden plik vCard</string>
+    <string name="button_import_vcard">Importuj z pliku vCard</string>
+    <string name="button_export_all_short">Eksportuj wszystkie</string>
+
     <!-- Search -->
     <string name="content_description_search">Szukaj</string>
     <string name="hint_search">Szukaj kontaktów</string>

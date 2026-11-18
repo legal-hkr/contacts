@@ -30,6 +30,9 @@ sealed interface Screen : NavKey {
     @Serializable data object SettingsContacts : Screen
     @Serializable data object Accounts : Screen
     @Serializable data object Duplicates : Screen
+    /** Import of the vCard files [uris] (SPEC §10); [external] when another app started the app for it (Close goes back there). */
+    @Serializable data class Import(val uris: List<String>, val external: Boolean = false) : Screen
+    @Serializable data object Export : Screen
     /** "Same person?" for the contacts [ids]; [suggested] when they came from the suggestions. */
     @Serializable data class Review(val ids: List<Long>, val suggested: Boolean) : Screen
     /** Join [id] (named [name]) with another contact, picked by search. */

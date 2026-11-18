@@ -25,6 +25,7 @@ import sh.hnet.contacts.backup.BackupManager
 import sh.hnet.contacts.data.ContactSource
 import sh.hnet.contacts.data.ContactWriter
 import sh.hnet.contacts.data.DeleteQueue
+import sh.hnet.contacts.data.ImportJob
 import sh.hnet.contacts.data.Sharing
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.DupGroup
@@ -44,6 +45,9 @@ class ContactsApplication : Application() {
 
     /** Deletes waiting for their Undo snackbar to go. */
     val deletes: DeleteQueue by lazy { DeleteQueue(appScope, writer) }
+
+    /** The vCard import, which outlives its page (SPEC §10.4). */
+    val imports: ImportJob by lazy { ImportJob(appScope, writer) }
 
     /**
      * The duplicate suggestions (SPEC §9.2), worked out again 2 s after the storage changes, while

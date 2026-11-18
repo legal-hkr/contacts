@@ -72,7 +72,15 @@ object VCardWriter {
             labeled("ADR${params(simpleType(value.type), false)}:$adr", value.label.takeIf { value.type == 0 })
         }
         for (value in contact.values[EditKind.WEBSITE].orEmpty()) {
-            labeled("URL${params(websiteType(value.type), false)}:${uri(value.part("data1"))}", value.label.takeIf { value.type == 0 })
+            // Blog, profile and FTP have no vCard type: their names as labels, so the import knows them again
+            val label = when (value.type) {
+                0 -> value.label
+                2 -> "Blog"
+                3 -> "Profile"
+                6 -> "FTP"
+                else -> null
+            }
+            labeled("URL${params(websiteType(value.type), false)}:${uri(value.part("data1"))}", label)
         }
         for (value in contact.values[EditKind.DATE].orEmpty()) {
             val date = date(value.part("data1")) ?: continue
@@ -91,7 +99,7 @@ object VCardWriter {
             val handle = value.part("data1")
             // XMPP has its URI scheme; the others go as Apple writes them: the service in a parameter
             if (value.protocol == 7) lines += "IMPP:xmpp:${uri(handle)}"
-            else lines += "IMPP;X-SERVICE-TYPE=${param(value.label ?: "Other")}:x-apple:${uri(handle)}"
+            else lines += "IMPP;X-SERVICE-TYPE=${param(value.label?.takeIf { value.protocol == -1 } ?: service(value.protocol))}:x-apple:${uri(handle)}"
         }
         for (value in contact.values[EditKind.SIP].orEmpty()) {
             val address = value.part("data1")
@@ -101,6 +109,19 @@ object VCardWriter {
         contact.photo?.let { lines += "PHOTO:data:image/jpeg;base64,${Base64.getEncoder().encodeToString(it)}" }
         lines += "END:VCARD"
         return lines.joinToString("") { fold(it) + CRLF }
+    }
+
+    /** The storage's old messaging protocols by the names Apple's apps use (`VCardReader.protocolOf` reads them back). */
+    private fun service(protocol: Int?): String = when (protocol) {
+        0 -> "AIM"
+        1 -> "MSN"
+        2 -> "Yahoo"
+        3 -> "Skype"
+        4 -> "QQ"
+        5 -> "GoogleTalk"
+        6 -> "ICQ"
+        8 -> "NetMeeting"
+        else -> "Other"
     }
 
     /** TYPE and PREF parameters: `;TYPE=cell;PREF=1`. */

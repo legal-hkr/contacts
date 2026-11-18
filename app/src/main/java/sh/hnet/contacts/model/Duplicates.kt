@@ -27,7 +27,7 @@ object Duplicates {
      * Groups of contacts that look like one person (SPEC §9.2): they share a number or an e-mail,
      * or have the same name and share any value; a name alone is never enough. Pairs in [separate]
      * (the storage's "keep separate", given as contact id pairs) are never joined. Groups are
-     * transitive (A~B, B~C → {A, B, C}) and over [MAX_GROUP] dropped.
+     * transitive (A like B and B like C make one group {A, B, C}) and over [MAX_GROUP] dropped.
      */
     fun find(contacts: List<DupContact>, separate: Set<Pair<Long, Long>>): List<DupGroup> {
         val apart = separate.flatMap { (a, b) -> listOf(a to b, b to a) }.toSet()

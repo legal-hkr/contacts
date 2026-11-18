@@ -205,6 +205,46 @@
     <string name="msg_merge_permanent_none">The contacts will become one. This can’t be undone.</string>
     <string name="msg_merged_permanent">Contacts merged into one: %1$s</string>
 
+    <!-- Import and export -->
+    <string name="title_import_contact">Import contact</string>
+    <string name="title_import_contacts">Import contacts</string>
+    <string name="label_import_to_account">Import to account</string>
+    <string name="label_skip_existing">Skip existing contacts</string>
+    <string name="desc_skip_existing">Same name and number or email</string>
+    <string name="label_import_count">Contacts in the file: %1$d, selected: %2$d</string>
+    <string name="label_already_exists_suffix">(already exists)</string>
+    <string name="msg_contact_exists">This contact already exists (%1$s, %2$s).</string>
+    <string name="label_import_anyway">Import anyway</string>
+    <string name="button_import">Import</string>
+    <string name="label_importing">Importing…</string>
+    <string name="label_import_progress">Imported: %1$s of %2$s</string>
+    <string name="msg_fields_skipped">Some fields in this file will be left out (%1$s, contacts: %2$d). The app doesn’t support them.</string>
+    <string name="error_unreadable_file">This file can’t be read. It isn’t a vCard file, or it is damaged.</string>
+    <string name="msg_file_no_contacts">There are no contacts in this file.</string>
+    <string name="button_choose_other_file">Choose another file</string>
+    <string name="msg_imported">Contacts imported: %1$s (%2$s)</string>
+    <string name="msg_imported_skipped">Contacts imported: %1$s (%2$s). Skipped: %3$s.</string>
+    <string name="error_import_failed">Contacts couldn’t be imported (imported: %1$s).</string>
+    <string name="button_undo_import">Undo import</string>
+    <string name="title_export_all">Export all contacts</string>
+    <string name="desc_export_intro">All contacts from the chosen accounts in one vCard file. It is the only copy of the contacts outside the accounts and the phone.</string>
+    <string name="label_group_file">File</string>
+    <string name="label_with_photos">With photos</string>
+    <string name="desc_with_photos">The file will be larger (about %1$s)</string>
+    <string name="label_size_mb">%1$d MB</string>
+    <string name="label_size_under_1mb">under 1 MB</string>
+    <string name="label_hidden_in_list_suffix">%1$s, hidden in the list</string>
+    <string name="label_export_count">Contacts in the file: %1$s. Joined ones count once.</string>
+    <string name="button_save_as">Save as…</string>
+    <string name="label_exporting">Exporting…</string>
+    <string name="label_export_progress">Exported: %1$s of %2$s</string>
+    <string name="label_import_file">Import from a file</string>
+    <string name="desc_import_file">vCard file (.vcf)</string>
+    <string name="label_export_all">Export all contacts</string>
+    <string name="desc_export_all">One vCard file</string>
+    <string name="button_import_vcard">Import from a vCard file</string>
+    <string name="button_export_all_short">Export all</string>
+
     <!-- Search -->
     <string name="content_description_search">Search</string>
     <string name="hint_search">Search contacts</string>

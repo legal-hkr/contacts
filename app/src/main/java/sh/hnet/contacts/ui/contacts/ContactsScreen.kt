@@ -100,6 +100,7 @@ fun ContactsScreen(
     onOpenSettings: () -> Unit,
     onOpenContact: (ContactRow) -> Unit,
     onNewContact: () -> Unit,
+    onImport: () -> Unit,
     onOpenAccounts: () -> Unit,
     onOpenDuplicates: () -> Unit,
     onMerge: (List<Long>) -> Unit,
@@ -168,6 +169,11 @@ fun ContactsScreen(
                     Icon(painterResource(R.drawable.ic_person_add), contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.button_new_contact))
+                }
+                FilledTonalButton(onClick = onImport) {
+                    Icon(painterResource(R.drawable.ic_download), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.button_import_vcard))
                 }
             }
             is ListState.AllHidden -> ListEmptyState(

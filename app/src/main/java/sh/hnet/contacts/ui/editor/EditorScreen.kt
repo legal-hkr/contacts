@@ -44,7 +44,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -79,7 +78,7 @@ import sh.hnet.contacts.data.PhotoChange
 import sh.hnet.contacts.data.Saved
 import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.FormValue
-import sh.hnet.contacts.ui.accounts.accountName
+import sh.hnet.contacts.ui.accounts.AccountPicker
 import sh.hnet.contacts.ui.components.Avatar
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.TooltipIconButton
@@ -312,37 +311,8 @@ private fun AccountField(viewModel: EditorViewModel) {
         }
         return
     }
-    var menu by remember { mutableStateOf(false) }
     val current = viewModel.account ?: return
-    val shown = accountName(current) + (current.app?.let { " ($it)" } ?: "")
-    Box {
-        OutlinedTextField(
-            value = shown,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            label = { Text(stringResource(R.string.label_save_to_account)) },
-            leadingIcon = { Icon(painterResource(if (current.local) R.drawable.ic_smartphone else R.drawable.ic_cloud_sync), contentDescription = null) },
-            trailingIcon = { Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(Modifier.matchParentSize().clickable { menu = true })
-        DropdownMenuPopup(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
-                viewModel.targets.forEachIndexed { index, target ->
-                    DropdownMenuItem(
-                        text = { Text(accountName(target) + (target.app?.let { " ($it)" } ?: ""), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        leadingIcon = { Icon(painterResource(if (target.local) R.drawable.ic_smartphone else R.drawable.ic_cloud_sync), contentDescription = null, modifier = Modifier.size(20.dp)) },
-                        shape = MenuDefaults.itemShape(index, viewModel.targets.size).shape,
-                        onClick = {
-                            menu = false
-                            viewModel.account = target
-                        },
-                    )
-                }
-            }
-        }
-    }
+    AccountPicker(stringResource(R.string.label_save_to_account), current, viewModel.targets, onChoose = { viewModel.account = it })
 }
 
 /**

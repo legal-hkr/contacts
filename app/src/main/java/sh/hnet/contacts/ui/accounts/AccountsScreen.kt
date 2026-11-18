@@ -5,6 +5,7 @@ package sh.hnet.contacts.ui.accounts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -48,7 +51,7 @@ import sh.hnet.contacts.ui.components.settingsRowColors
  */
 @OptIn(FlowPreview::class)
 @Composable
-fun AccountsScreen(onBack: () -> Unit, onMoved: (Moved, String) -> Unit) {
+fun AccountsScreen(onBack: () -> Unit, onMoved: (Moved, String) -> Unit, onExport: () -> Unit) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     val scope = rememberCoroutineScope()
     var accounts by remember { mutableStateOf<List<AccountInfo>?>(null) }
@@ -99,17 +102,19 @@ fun AccountsScreen(onBack: () -> Unit, onMoved: (Moved, String) -> Unit) {
                 }
             }
         }
-        // The local contacts' only copy outside the phone (SPEC §8.3); the export's button joins with its stage
-        Row(
+        // The local contacts' only copy outside the phone (SPEC §8.3), with the way to make it
+        Column(
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(20.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
         ) {
-            Icon(painterResource(R.drawable.ic_info), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(stringResource(R.string.msg_local_only_copy), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(painterResource(R.drawable.ic_info), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.msg_local_only_copy), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TextButton(onClick = onExport, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.button_export_all_short)) }
         }
     }
     if (moving) {
