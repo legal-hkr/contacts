@@ -431,4 +431,13 @@
     <string name="label_apache_license" translatable="false">Apache License 2.0</string>
     <string name="title_about_source">Source code</string>
     <string name="msg_about_privacy">The app has no access to the Internet. Contacts are kept by the system and synced by the apps that manage your accounts.</string>
+
+    <!-- Saving to an account that syncs (the owner's D1–D4, 18 Nov 2026) -->
+    <string name="label_sending">Sending to the server (account: %1$s)…</string>
+    <string name="msg_upload_rejected">The server didn’t accept the changes (account: %1$s). They haven’t been saved anywhere yet.</string>
+    <string name="button_save_on_phone">Save on this phone</string>
+    <string name="button_discard_changes">Discard changes</string>
+    <string name="msg_saved_not_sent">Changes saved on this phone. They will be sent at the next sync.</string>
+    <string name="msg_changes_rejected">The server didn’t accept the changes (%1$s)</string>
+    <string name="msg_deletion_rejected">The server didn’t accept the deletion of contacts (%1$s)</string>
 </resources>

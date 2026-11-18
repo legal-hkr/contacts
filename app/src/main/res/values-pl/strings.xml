@@ -425,4 +425,13 @@
     <string name="desc_licenses">Składniki open source użyte w aplikacji</string>
     <string name="title_about_source">Kod źródłowy</string>
     <string name="msg_about_privacy">Aplikacja nie ma dostępu do Internetu. Kontakty przechowuje system, a synchronizują je aplikacje obsługujące konta.</string>
+
+    <!-- Zapis do konta synchronizowanego (decyzje właściciela D1–D4, 18.11.2026) -->
+    <string name="label_sending">Wysyłanie na serwer (konto: %1$s)…</string>
+    <string name="msg_upload_rejected">Serwer nie przyjął zmian (konto: %1$s). Zmiany nie zostały jeszcze nigdzie zapisane.</string>
+    <string name="button_save_on_phone">Zapisz w telefonie</string>
+    <string name="button_discard_changes">Odrzuć zmiany</string>
+    <string name="msg_saved_not_sent">Zapisano zmiany w telefonie. Zostaną wysłane przy następnej synchronizacji.</string>
+    <string name="msg_changes_rejected">Serwer nie przyjął zmian (%1$s)</string>
+    <string name="msg_deletion_rejected">Serwer nie przyjął usunięcia kontaktów (%1$s)</string>
 </resources>

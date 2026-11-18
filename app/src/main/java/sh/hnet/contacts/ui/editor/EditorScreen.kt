@@ -50,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +61,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -127,7 +130,10 @@ fun EditorScreen(
     val saveFailed = stringResource(R.string.error_save_failed)
     val photoFailed = stringResource(R.string.error_photo_not_saved)
     val unreadable = stringResource(R.string.error_photo_unreadable)
-    val close: () -> Unit = { if (viewModel.changed) discarding = true else onClose() }
+    // Nothing closes the editor while it waits for the account's app (D1): the save is already in the storage
+    val close: () -> Unit = { if (viewModel.uploading) Unit else if (viewModel.changed && viewModel.rejected == null) discarding = true else onClose() }
+    val focus = LocalFocusManager.current
+    LaunchedEffect(viewModel.uploading) { if (viewModel.uploading) focus.clearFocus() }
     BackHandler(enabled = cropping == null) { close() }
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) cropping = CropSource.Address(uri) }
 
@@ -135,7 +141,7 @@ fun EditorScreen(
         val empty = stringResource(R.string.desc_save_disabled)
         TopAppBar(
             title = { Text(stringResource(if (lookupKey == null) R.string.title_new_contact else R.string.title_edit_contact), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            navigationIcon = { TooltipIconButton(R.drawable.ic_close, stringResource(R.string.button_close), close) },
+            navigationIcon = { TooltipIconButton(R.drawable.ic_close, stringResource(R.string.button_close), close, enabled = !viewModel.uploading) },
             actions = {
                 Button(
                     onClick = {
@@ -144,7 +150,8 @@ fun EditorScreen(
                             onSaved(saved)
                         }) { messageScope.launch { snackbars.showSnackbar(saveFailed, duration = SnackbarDuration.Short) } }
                     },
-                    enabled = viewModel.phase == EditorPhase.READY && viewModel.hasContent && !viewModel.saving,
+                    // After a rejection Save would only send to the same account again: the card's two ways out instead
+                    enabled = viewModel.phase == EditorPhase.READY && viewModel.hasContent && !viewModel.saving && viewModel.rejected == null,
                     modifier = Modifier.padding(end = 12.dp).height(40.dp).semantics { if (!viewModel.hasContent) stateDescription = empty },
                 ) {
                     if (viewModel.saving) LoadingIndicator(Modifier.size(24.dp), color = LocalContentColor.current) else Text(stringResource(R.string.button_save))
@@ -156,14 +163,27 @@ fun EditorScreen(
             EditorPhase.GONE -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onClose) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            EditorPhase.READY -> Form(
-                viewModel,
-                onPickPhoto = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                onEditPhoto = {
-                    // The photo as it is now: a crop made in this form, else the stored one
-                    cropping = (viewModel.photo as? PhotoChange.Set)?.let { CropSource.Bytes(it.jpeg) } ?: viewModel.storedPhoto?.let { CropSource.Address(it.substringBefore('#').toUri()) }
-                },
-            )
+            EditorPhase.READY -> {
+                UploadCard(
+                    viewModel,
+                    onKeep = { viewModel.keepOnPhone(onSaved) { messageScope.launch { snackbars.showSnackbar(saveFailed, duration = SnackbarDuration.Short) } } },
+                    onDiscard = { viewModel.discardRejected()?.let(onSaved) ?: onClose() },
+                )
+                Box(Modifier.fillMaxSize()) {
+                    Form(
+                        viewModel,
+                        onPickPhoto = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        onEditPhoto = {
+                            // The photo as it is now: a crop made in this form, else the stored one
+                            cropping = (viewModel.photo as? PhotoChange.Set)?.let { CropSource.Bytes(it.jpeg) } ?: viewModel.storedPhoto?.let { CropSource.Address(it.substringBefore('#').toUri()) }
+                        },
+                    )
+                    // The form is locked while the save is being sent (D1): a change made now would be closed away unsaved
+                    if (viewModel.uploading) {
+                        Box(Modifier.matchParentSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } })
+                    }
+                }
+            }
         }
     }
 
@@ -263,6 +283,37 @@ private fun Form(viewModel: EditorViewModel, onPickPhoto: () -> Unit, onEditPhot
             viewModel.values.firstOrNull { it.key == value.key }?.let { viewModel.update(it.copy(parts = it.parts + ("data1" to date))) }
             dating = null
         }, onDismiss = { dating = null })
+    }
+}
+
+/**
+ * The save and the account that syncs it (D1): "Sending…" while its app hasn't answered; when it took the save back, the card on the error container with the two ways out – the form saved on the phone, or the changes dropped.
+ */
+@Composable
+private fun UploadCard(viewModel: EditorViewModel, onKeep: () -> Unit, onDiscard: () -> Unit) {
+    val rejected = viewModel.rejected
+    if (viewModel.uploading) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp)).padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LoadingIndicator(Modifier.size(24.dp))
+            Text(stringResource(R.string.label_sending, viewModel.snapshot?.target?.account?.name ?: viewModel.account?.account?.name.orEmpty()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else if (rejected != null) {
+        Column(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(20.dp)).padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(painterResource(R.drawable.ic_sync_problem), contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                Text(stringResource(R.string.msg_upload_rejected, rejected), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+            }
+            Row(Modifier.align(Alignment.End)) {
+                TextButton(onClick = onDiscard, enabled = !viewModel.saving) { Text(stringResource(R.string.button_discard_changes)) }
+                TextButton(onClick = onKeep, enabled = !viewModel.saving) { Text(stringResource(R.string.button_save_on_phone)) }
+            }
+        }
     }
 }
 

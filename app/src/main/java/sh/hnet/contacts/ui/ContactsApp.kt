@@ -59,6 +59,7 @@ import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.data.Deletion
 import sh.hnet.contacts.data.ImportJob
 import sh.hnet.contacts.data.Moved
+import sh.hnet.contacts.data.UploadWatch
 import sh.hnet.contacts.model.ListSettings
 import sh.hnet.contacts.ui.accounts.AccountsScreen
 import sh.hnet.contacts.ui.components.ContactsAccess
@@ -171,6 +172,9 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
         }
     }
     val accountHidden = stringResource(R.string.msg_account_hidden)
+    val savedNotSent = stringResource(R.string.msg_saved_not_sent)
+    val changesRejected = stringResource(R.string.msg_changes_rejected)
+    val deletionRejected = stringResource(R.string.msg_deletion_rejected)
     val thisPhone = stringResource(R.string.label_this_phone)
     val show = stringResource(R.string.button_show)
 
@@ -223,6 +227,20 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                     if (snackbars.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
                         runCatching { app.writer.delete(outcome.rawContactIds) }
                     }
+                }
+            }
+        }
+    }
+
+    // Changes and deletes an account's app took back after the editor or the Undo snackbar was gone (D3, D4), wherever the user is now
+    LaunchedEffect(Unit) {
+        app.uploads.rejections.collect { rejection ->
+            messages.launch {
+                when (rejection) {
+                    is UploadWatch.Rejection.Change -> if (snackbars.showSnackbar(changesRejected.format(rejection.name), actionLabel = show, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
+                        open(Screen.Contact(rejection.lookupKey, rejection.contactId))
+                    }
+                    is UploadWatch.Rejection.Deletion -> snackbars.showSnackbar(deletionRejected.format(NumberFormat.getIntegerInstance(locale).format(rejection.contacts)), duration = SnackbarDuration.Short)
                 }
             }
         }
@@ -283,6 +301,8 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                                     back()
                                     // A new contact's page opens; an edited one's page was under the editor already
                                     if (editor.lookupKey == null) open(Screen.Contact(saved.lookupKey, saved.contactId))
+                                    // The account's app hadn't sent it within the editor's wait (D2): it goes with the next sync, and is still watched (D3)
+                                    if (saved.unconfirmed) messages.launch { snackbars.showSnackbar(savedNotSent, duration = SnackbarDuration.Short) }
                                     // Saved into an account the list hides (SPEC §4.8): say so, with Show
                                     saved.account?.let { account ->
                                         messages.launch {

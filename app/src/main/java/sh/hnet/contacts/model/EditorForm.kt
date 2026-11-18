@@ -87,4 +87,9 @@ object EditorDiff {
 
     /** The form holds something to save: a value of any kind, or a photo (SPEC §7.1). */
     fun hasContent(edited: List<FormValue>, photo: Boolean): Boolean = photo || edited.any { !it.blank }
+
+    /** What the values hold, without the form's keys and rows, to tell a real change (the editor's changed card, the upload check). */
+    fun content(values: List<FormValue>): List<String> = values.map { value ->
+        listOf(value.kind.name, value.parts.toSortedMap().filterValues { it.isNotBlank() }.map { "${it.key}=${it.value.trim()}" }.joinToString(","), value.type, value.label.orEmpty(), value.protocol, value.isDefault).joinToString("|")
+    }.sorted()
 }

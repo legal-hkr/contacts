@@ -27,6 +27,7 @@ import sh.hnet.contacts.data.ContactWriter
 import sh.hnet.contacts.data.DeleteQueue
 import sh.hnet.contacts.data.ImportJob
 import sh.hnet.contacts.data.Sharing
+import sh.hnet.contacts.data.UploadWatch
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.DupGroup
 import sh.hnet.contacts.model.Duplicates
@@ -43,8 +44,11 @@ class ContactsApplication : Application() {
     /** The editor's reads and writes. */
     val writer: ContactWriter by lazy { ContactWriter(this, contacts) }
 
+    /** Whether the apps of accounts that sync sent what the app wrote (the owner's D1–D5, 18 Nov 2026). */
+    val uploads: UploadWatch by lazy { UploadWatch(appScope, writer, contacts) }
+
     /** Deletes waiting for their Undo snackbar to go. */
-    val deletes: DeleteQueue by lazy { DeleteQueue(appScope, writer) }
+    val deletes: DeleteQueue by lazy { DeleteQueue(appScope, writer, uploads) }
 
     /** The vCard import, which outlives its page (SPEC §10.4). */
     val imports: ImportJob by lazy { ImportJob(appScope, writer) }

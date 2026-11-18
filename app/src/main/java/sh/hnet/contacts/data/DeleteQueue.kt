@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
  * screen, which counts as the user's decision too. Until then Undo only shows them again. One
  * delete waits at a time: the next one carries out the one before.
  */
-class DeleteQueue(private val scope: CoroutineScope, private val writer: ContactWriter) {
+class DeleteQueue(private val scope: CoroutineScope, private val writer: ContactWriter, private val uploads: UploadWatch) {
     private val _waiting = MutableStateFlow<Deletion?>(null)
 
     /** The delete that can still be undone. */
@@ -52,6 +52,8 @@ class DeleteQueue(private val scope: CoroutineScope, private val writer: Contact
         scope.launch {
             try {
                 writer.delete(deletion.rawContactIds)
+                // An account's app may put the entries back (DAVx⁵ with a read-only address book): watched, and said if it does (D4)
+                uploads.followDeletion(deletion.rawContactIds, deletion.contacts.size.takeIf { it > 0 } ?: deletion.rawContactIds.size)
                 // The views read the storage again a moment after it changed; until then the contacts stay out of sight
                 delay(LINGER)
             } catch (_: Exception) {

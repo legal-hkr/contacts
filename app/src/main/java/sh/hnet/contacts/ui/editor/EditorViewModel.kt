@@ -18,6 +18,7 @@ import sh.hnet.contacts.data.Saved
 import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.EditorDiff
 import sh.hnet.contacts.model.FormValue
+import sh.hnet.contacts.model.UploadOutcome
 
 /** What the editor opens with besides a contact: values handed over by another app's "Create contact" (SPEC §3.4). */
 data class Prefill(val name: String? = null, val phone: String? = null, val email: String? = null)
@@ -59,6 +60,17 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
 
     var saving by mutableStateOf(false)
         private set
+
+    /** Saved, waiting for the account's app to send it (D1): the form is locked meanwhile. */
+    var uploading by mutableStateOf(false)
+        private set
+
+    /** The account's app took the save back (D1): the account's name for the card; the form still holds the user's values. */
+    var rejected by mutableStateOf<String?>(null)
+        private set
+
+    /** The save the app took back, for "Discard changes". */
+    private var rejectedSave: Saved? = null
 
     /** The values as read, to tell whether anything changed (the discard dialog, SPEC §7.7). */
     private var original: List<FormValue> = emptyList()
@@ -110,6 +122,8 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
     private fun watch() {
         viewModelScope.launch {
             app.contacts.changes.debounce(300).collect {
+                // The editor's own save and its sending change the contact too: that's the upload check's business, not the changed card's
+                if (saving || rejected != null) return@collect
                 val read = snapshot ?: return@collect
                 val now = app.writer.versions(read.entries.map { it.rawContactId })
                 if (now.isEmpty()) {
@@ -123,7 +137,7 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
                     // A photo's address changes when the storage finishes processing a new one: only whether there is a photo counts
                     // An entry gone (a sync, a move's Undo window over) is a change even with the same values: Save would write into it
                     read.entries.any { it.rawContactId !in now } -> underneath = Underneath.CHANGED
-                    content(fresh.values) == content(read.values) && (fresh.photo == null) == (read.photo == null) -> {
+                    EditorDiff.content(fresh.values) == EditorDiff.content(read.values) && (fresh.photo == null) == (read.photo == null) -> {
                         // Only the versions moved: the form stays valid, compared from now on against the new ones
                         snapshot = read.copy(entries = read.entries.map { entry -> entry.copy(version = now.getValue(entry.rawContactId)) })
                     }
@@ -132,11 +146,6 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
             }
         }
     }
-
-    /** What the values hold, without the form's keys and rows, to tell a real change. */
-    private fun content(values: List<FormValue>): List<String> = values.map { value ->
-        listOf(value.kind.name, value.parts.toSortedMap().filterValues { it.isNotBlank() }.map { "${it.key}=${it.value.trim()}" }.joinToString(","), value.type, value.label.orEmpty(), value.protocol, value.isDefault).joinToString("|")
-    }.sorted()
 
     /** "Reload": the user's edits go, the contact as it is now comes in (SPEC §7.7). */
     fun reload() {
@@ -185,10 +194,59 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
             // Created anew only when the contact is gone now, not because the card once said so
             val gone = underneath == Underneath.DELETED && snapshot?.let { read -> app.writer.versions(read.entries.map { it.rawContactId }).isEmpty() } == true
             val saved = app.writer.save(snapshot, values.toList(), account?.account, photo, recreate = gone)
+            if (saved == null) {
+                saving = false
+                onFailed()
+                return@launch
+            }
+            if (saved.upload == null) {
+                saving = false
+                onSaved(saved)
+                return@launch
+            }
+            // An account that syncs: the editor stays until its app sent the change, at most 10 s (D1, D2)
+            uploading = true
+            val outcome = app.uploads.await(saved)
+            uploading = false
             saving = false
-            if (saved != null) onSaved(saved) else onFailed()
+            when (outcome) {
+                UploadOutcome.CONFIRMED -> onSaved(saved)
+                UploadOutcome.PENDING -> {
+                    app.uploads.follow(saved)
+                    onSaved(saved.copy(unconfirmed = true))
+                }
+                UploadOutcome.REJECTED -> {
+                    rejectedSave = saved
+                    rejected = (snapshot?.target?.account ?: account?.account)?.name.orEmpty()
+                }
+            }
         }
     }
+
+    /** "Save on this phone" after a rejection (D1): the form as a new contact without an account, joined with the one the account's app kept, if any. */
+    fun keepOnPhone(onSaved: (Saved) -> Unit, onFailed: () -> Unit) {
+        if (saving) return
+        saving = true
+        viewModelScope.launch {
+            val local = app.writer.save(null, values.toList(), app.contacts.localTarget(), photo)
+            val kept = rejectedSave
+            if (local != null && kept != null && snapshot != null) {
+                try {
+                    app.writer.join(listOf(listOf(kept.contactId, local.contactId)))
+                } catch (_: Exception) {
+                    // Saved on the phone anyway, as a contact of its own
+                }
+            }
+            saving = false
+            if (local == null) onFailed() else {
+                rejected = null
+                onSaved(local.copy(account = null))
+            }
+        }
+    }
+
+    /** "Discard changes" after a rejection (D1): the save the account's app took back, for the shell to close the editor as after any save; null for a new contact, which is gone. */
+    fun discardRejected(): Saved? = rejectedSave.takeIf { snapshot != null }
 
     companion object {
         /** The type a new value of a kind starts with (SPEC §7.4.1): Mobile, Personal, Home, Website, Birthday, Other (SIP), Relative (a relation's type is chosen, this is the most general). */

@@ -27,6 +27,7 @@ import sh.hnet.contacts.model.CardContact
 import sh.hnet.contacts.model.CardValue
 import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.EditorDiff
+import sh.hnet.contacts.model.EntryState
 import sh.hnet.contacts.model.FormValue
 import sh.hnet.contacts.model.Origin
 import sh.hnet.contacts.model.Write
@@ -67,7 +68,13 @@ sealed interface PhotoChange {
 }
 
 /** A saved contact, to open its page; [photoFailed] when the contact was saved but its photo couldn't be written. */
-data class Saved(val contactId: Long, val lookupKey: String, val photoFailed: Boolean = false, val account: AccountKey? = null)
+/**
+ * A saved contact. [upload] is set when the save went to entries of accounts that sync: the editor waits for their app to send it (the owner's D1, 18 Nov 2026); [unconfirmed] when it stopped waiting before an answer (D2).
+ */
+data class Saved(val contactId: Long, val lookupKey: String, val photoFailed: Boolean = false, val account: AccountKey? = null, val upload: Upload? = null, val unconfirmed: Boolean = false)
+
+/** What a save wrote to entries of accounts that sync, to tell later whether their app sent it: the [entries], their data [rows] right after the save, and the contact's [content] as it was then (`EditorDiff.content`). */
+data class Upload(val entries: List<Long>, val rows: Set<Long>, val content: List<String>)
 
 /** The storage's columns of each kind and the type and label columns of those that have them. */
 private object Columns {
@@ -372,7 +379,16 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             } catch (_: Exception) {
                 null
             }
-            (found ?: snapshot?.let { Saved(it.contactId, it.lookupKey) } ?: Saved(0, "")).copy(photoFailed = photoFailed, account = if (snapshot == null) account else null)
+            val saved = (found ?: snapshot?.let { Saved(it.contactId, it.lookupKey) } ?: Saved(0, "")).copy(photoFailed = photoFailed, account = if (snapshot == null) account else null)
+            // Entries of accounts that sync: what to watch until their app sent the change (D1); never a reason to report the save as failed
+            val synced = if (newEntry) rawIds.filter { !source.isLocal((if (recreate) target?.account else account) ?: AccountKey("", "")) } else snapshot.entries.filter { !it.local && it.rawContactId in writable }.map { it.rawContactId }
+            val upload = try {
+                if (synced.isEmpty() || saved.lookupKey.isEmpty()) null
+                else Upload(synced, dataRows(synced), load(saved.lookupKey, saved.contactId)?.values.orEmpty().filter { !it.blank }.let(EditorDiff::content))
+            } catch (_: Exception) {
+                null
+            }
+            saved.copy(upload = upload)
         } catch (_: Exception) {
             // OperationApplicationException, RemoteException, SecurityException: the batch didn't happen, nothing was saved
             null
@@ -692,6 +708,42 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             }
         }
         return operations
+    }
+
+    /** The entries [ids] the storage still has, with their dirty and deleted flags (the upload check). */
+    suspend fun entryStates(ids: Collection<Long>): Map<Long, EntryState> = withContext(Dispatchers.IO) {
+        val result = HashMap<Long, EntryState>()
+        if (ids.isEmpty()) return@withContext result
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.DIRTY, ContactsContract.RawContacts.DELETED),
+            "${ContactsContract.RawContacts._ID} IN (${ids.joinToString(",")})", null, null,
+        )?.use { cursor -> while (cursor.moveToNext()) result[cursor.getLong(0)] = EntryState(cursor.getInt(1) != 0, cursor.getInt(2) != 0) }
+        result
+    }
+
+    /** The ids of the data rows of the entries [ids]. */
+    fun dataRows(ids: Collection<Long>): Set<Long> {
+        if (ids.isEmpty()) return emptySet()
+        val rows = HashSet<Long>()
+        resolver.query(ContactsContract.Data.CONTENT_URI, arrayOf(ContactsContract.Data._ID), "${ContactsContract.Data.RAW_CONTACT_ID} IN (${ids.joinToString(",")})", null, null)?.use { cursor ->
+            while (cursor.moveToNext()) rows += cursor.getLong(0)
+        }
+        return rows
+    }
+
+    /** Of the entries [ids], those in accounts that sync (not on the phone only): a delete of them waits for their app. */
+    suspend fun syncedEntries(ids: Collection<Long>): List<Long> = withContext(Dispatchers.IO) {
+        val result = ArrayList<Long>()
+        if (ids.isEmpty()) return@withContext result
+        resolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts._ID, ContactsContract.RawContacts.ACCOUNT_TYPE, ContactsContract.RawContacts.ACCOUNT_NAME),
+            "${ContactsContract.RawContacts._ID} IN (${ids.joinToString(",")})", null, null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) if (!source.isLocal(AccountKey(cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty()))) result += cursor.getLong(0)
+        }
+        result
     }
 
     /** Of [dataIds], those no longer in the storage. */
