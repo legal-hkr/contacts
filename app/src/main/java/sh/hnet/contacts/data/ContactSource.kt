@@ -539,7 +539,8 @@ class ContactSource(private val context: Context) {
      * folded name, number keys, e-mails, addresses and websites.
      */
     suspend fun dupContacts(hidden: Set<String>): List<DupContact> = withContext(Dispatchers.IO) {
-        val rows = rows(ListSettings(), hidden).filter { it.second }.map { it.first }
+        // Names in the order people write them ("Jan Kowalski"), whatever the list sorts by: imported files and other contacts are compared with them
+        val rows = rows(ListSettings(sortByLast = false, lastFirst = false), hidden).filter { it.second }.map { it.first }
         val numbers = HashMap<Long, MutableSet<String>>()
         val emails = HashMap<Long, MutableSet<String>>()
         val others = HashMap<Long, MutableSet<String>>()

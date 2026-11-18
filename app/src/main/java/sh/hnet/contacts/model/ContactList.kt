@@ -27,8 +27,10 @@ data class AccountKey(val type: String, val name: String) {
  * @param lastFirst Show names as "Last, First" (the storage's alternative display name)
  * @param companyLine The company (and title) on a second line of a row
  */
-/** @param avatarColors Letter avatars in many colors (Calendar's palette); false keeps the theme's three (the owner, 18 Nov 2026) */
-data class ListSettings(val sortByLast: Boolean = false, val lastFirst: Boolean = false, val companyLine: Boolean = false, val avatarColors: Boolean = true)
+/**
+ * @param sortByLast Sorted by family name from the start (the owner, 18 Nov 2026); names still shown given name first
+ * @param avatarColors Letter avatars in many colors (Calendar's palette); false keeps the theme's three (the owner, 18 Nov 2026) */
+data class ListSettings(val sortByLast: Boolean = true, val lastFirst: Boolean = false, val companyLine: Boolean = false, val avatarColors: Boolean = true)
 
 /**
  * One contact as the list shows it (SPEC §4.5).

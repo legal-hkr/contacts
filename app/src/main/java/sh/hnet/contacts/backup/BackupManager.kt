@@ -74,7 +74,7 @@ class BackupManager(private val app: ContactsApplication, private val stamps: Sh
         val s = backup.settings
         val hidden = backup.accounts.filter { !it.shown }.map { AccountKey(it.type, it.name).key }.toSet()
         val defaultAccount = if (s.defaultAccountType != null && s.defaultAccountName != null) AccountKey(s.defaultAccountType, s.defaultAccountName).key else null
-        app.preferences.replace(ListSettings(sortByLast = s.sortBy == SORT_LAST, lastFirst = s.nameOrder == ORDER_LAST_FIRST, companyLine = s.companyLine ?: false, avatarColors = s.avatarColors != COLORS_THEME), hidden, defaultAccount)
+        app.preferences.replace(ListSettings(sortByLast = s.sortBy?.let { it == SORT_LAST } ?: ListSettings().sortByLast, lastFirst = s.nameOrder == ORDER_LAST_FIRST, companyLine = s.companyLine ?: false, avatarColors = s.avatarColors != COLORS_THEME), hidden, defaultAccount)
     }
 
     private suspend fun snapshot(): BackupFile {

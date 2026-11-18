@@ -296,25 +296,18 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
     LaunchedEffect(duplicates.size) { if (duplicates.size < dismissed) { dismissed = duplicates.size; app.duplicatesDismissed = duplicates.size } }
     val listState = rememberLazyListState()
     val favorites = state.favorites.isNotEmpty()
-    // The letter of every item, and where each letter starts, for the fast scroller
-    val index = remember(state, duplicates.size > dismissed, selection.active) {
-        val sections = ArrayList<String>(state.entries.size + 1)
-        val starts = LinkedHashMap<String, Int>()
-        if (favorites) {
-            starts[STAR] = 0
-            sections += STAR
-        }
+    // The letter of every item, for the fast scroller's bubble
+    val sections = remember(state, duplicates.size > dismissed, selection.active) {
+        val sections = ArrayList<String>(state.entries.size + 2)
+        if (favorites) sections += STAR
         // The duplicates card files with the first letter's place
         if (duplicates.size > dismissed && !selection.active) sections += state.entries.firstOrNull()?.let { (it as? ListEntry.Header)?.letter }.orEmpty()
         var letter = ""
         for (entry in state.entries) {
-            if (entry is ListEntry.Header) {
-                letter = entry.letter
-                starts.putIfAbsent(letter, sections.size)
-            }
+            if (entry is ListEntry.Header) letter = entry.letter
             sections += letter
         }
-        sections to starts
+        sections
     }
     // Each letter's rows are one segmented group (the owner, 18 Nov 2026, as News's days): a row's place and its group's size
     val places = remember(state) {
@@ -380,7 +373,7 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
             }
         }
         FastScroller(
-            listState, index.first, index.second.keys.toList(), index.second,
+            listState, sections,
             Modifier.align(Alignment.TopEnd).padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()),
         )
     }

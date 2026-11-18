@@ -17,7 +17,7 @@ private val Context.settings by preferencesDataStore("settings")
 class Preferences(private val context: Context) {
     /** Settings › List (SPEC §13.2). */
     val listSettings: Flow<ListSettings> = context.settings.data.map {
-        ListSettings(sortByLast = it[SORT_BY_LAST] ?: false, lastFirst = it[LAST_FIRST] ?: false, companyLine = it[COMPANY_LINE] ?: false, avatarColors = it[AVATAR_COLORS] ?: true)
+        ListSettings(sortByLast = it[SORT_BY_LAST] ?: true, lastFirst = it[LAST_FIRST] ?: false, companyLine = it[COMPANY_LINE] ?: false, avatarColors = it[AVATAR_COLORS] ?: true)
     }.distinctUntilChanged()
 
     suspend fun setSortByLast(on: Boolean) = context.settings.edit { it[SORT_BY_LAST] = on }
