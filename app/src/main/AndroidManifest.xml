@@ -6,6 +6,16 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
+    <!-- The apps that sync contacts (DAVx⁵), seen by the app: without them the system leaves their sync adapters out of getSyncAdapterTypes(), so their accounts counted as read-only and new contacts could go only to the phone, and their accounts had no app name or icon (package visibility, as Calendar's) -->
+    <queries>
+        <intent>
+            <action android:name="android.accounts.AccountAuthenticator" />
+        </intent>
+        <intent>
+            <action android:name="android.content.SyncAdapter" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ContactsApplication"
         android:allowBackup="false"

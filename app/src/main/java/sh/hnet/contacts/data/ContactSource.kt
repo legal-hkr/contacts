@@ -174,8 +174,26 @@ class ContactSource(private val context: Context) {
      * Accounts of apps that sync contacts, visible to an app holding the contacts permission, even
      * without contacts yet; with [uploading] only those that send changes to a server (new contacts can go there).
      */
-    private fun syncedAccounts(uploading: Boolean): List<AccountKey> =
-        AccountManager.get(context).accounts.filter { if (uploading) adapters[it.type] == true else it.type in adapters }.map { AccountKey(it.type, it.name) }
+    private fun syncedAccounts(uploading: Boolean): List<AccountKey> {
+        // AccountManager shows only the accounts their app lets other apps see: DAVx⁵ hides its address books' accounts there (setAccountVisibility), so the editor offered only "On this phone". The storage's per-account settings, which the syncing apps write, name them too, and stay small, unlike reading every entry.
+        val visible = AccountManager.get(context).accounts.map { AccountKey(it.type, it.name) }
+        return (visible + settingsAccounts()).distinct().filter { if (uploading) adapters[it.type] == true else it.type in adapters }
+    }
+
+    /** The accounts with a row in the storage's settings (`ContactsContract.Settings`). */
+    private fun settingsAccounts(): List<AccountKey> = try {
+        val found = ArrayList<AccountKey>()
+        resolver.query(ContactsContract.Settings.CONTENT_URI, arrayOf(ContactsContract.Settings.ACCOUNT_TYPE, ContactsContract.Settings.ACCOUNT_NAME), null, null, null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val type = cursor.getString(0)
+                val name = cursor.getString(1)
+                if (!type.isNullOrEmpty() && !name.isNullOrEmpty()) found += AccountKey(type, name)
+            }
+        }
+        found
+    } catch (_: Exception) {
+        emptyList()
+    }
 
     suspend fun accounts(): List<AccountInfo> = withContext(Dispatchers.IO) {
         val counts = HashMap<AccountKey, MutableSet<Long>>()
