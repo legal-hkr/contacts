@@ -462,6 +462,7 @@ class ContactSource(private val context: Context) {
         var phoneticFamily: String? = null
         var company: String? = null
         var initials: String? = null
+        var givenName: String? = null
         val values = ArrayList<Detail>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
@@ -486,6 +487,7 @@ class ContactSource(private val context: Context) {
                 when (cursor.getString(2)) {
                     StructuredName.CONTENT_ITEM_TYPE -> {
                         if (initials == null) initials = Avatars.initials(cursor.getString(4), cursor.getString(5), Locale.getDefault())
+                        if (givenName == null) givenName = cursor.getString(4)?.trim()?.takeIf { it.isNotEmpty() }
                         if (phoneticGiven == null) phoneticGiven = cursor.getString(9)?.trim()?.takeIf { it.isNotEmpty() }
                         if (phoneticFamily == null) phoneticFamily = cursor.getString(10)?.trim()?.takeIf { it.isNotEmpty() }
                     }
@@ -524,6 +526,7 @@ class ContactSource(private val context: Context) {
             details = grouped,
             sources = sources,
             initials = initials,
+            givenName = givenName,
         )
     }
 

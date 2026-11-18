@@ -47,6 +47,8 @@ data class ContactDetails(
     val sources: List<Source>,
     /** The letter avatar's letters, as [ContactRow.initials]. */
     val initials: String? = null,
+    /** The given name of the first name row with one: the one-contact widget's short name without a nickname, as [ContactRow.shortName]. */
+    val givenName: String? = null,
 ) {
     /** Only read-only entries: no editing, no deleting (SPEC §6.6). */
     val readOnly: Boolean get() = sources.isNotEmpty() && sources.all { it.readOnly }

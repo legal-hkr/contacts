@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Favorites widget without favorites or without access (SPEC §14.3), without a background of its own as the favorites: one piece on the surface (radius 18, its own shadow) with an icon, one sentence and, without access, "Open Contacts". In one column the icon alone, one row high the sentence alone; the whole piece opens the app. -->
+<!-- A widget's state (SPEC §14.3) – no access, no favorites, a contact deleted or in a hidden account –, without a background of its own as the widgets: one piece on the surface (radius 18, its own shadow) with an icon, one sentence and a text button ("Open Contacts", "Choose another"). In one column or at 1 × 1 the icon alone, one row high the sentence alone (the owner, 18 Nov 2026); the whole piece does what the button does. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="SpUsage,ContentDescription"

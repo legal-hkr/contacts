@@ -446,4 +446,13 @@
     <string name="msg_widget_no_favorites">No favorites. Star a contact in the Contacts app.</string>
     <string name="msg_widget_no_permission">No access to contacts.</string>
     <string name="button_open_contacts">Open Contacts</string>
+    <string name="title_widget_contact">Contact</string>
+    <string name="desc_widget_contact">One contact with Call and Message buttons.</string>
+    <string name="title_choose_contact">Choose a contact</string>
+    <string name="msg_widget_deleted">This contact was deleted.</string>
+    <string name="msg_widget_hidden">This contact’s account is hidden.</string>
+    <string name="button_choose_another">Choose another</string>
+    <string name="label_widget_small_button">Button in the 1 × 1 size</string>
+    <string name="label_no_button">No button</string>
+    <string name="label_change_contact">Change contact</string>
 </resources>

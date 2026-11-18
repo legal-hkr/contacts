@@ -440,4 +440,13 @@
     <string name="msg_widget_no_favorites">Brak ulubionych. Oznacz kontakt gwiazdką w aplikacji Kontakty.</string>
     <string name="msg_widget_no_permission">Brak dostępu do kontaktów.</string>
     <string name="button_open_contacts">Otwórz Kontakty</string>
+    <string name="title_widget_contact">Kontakt</string>
+    <string name="desc_widget_contact">Jeden kontakt z przyciskami Zadzwoń i Wiadomość.</string>
+    <string name="title_choose_contact">Wybierz kontakt</string>
+    <string name="msg_widget_deleted">Ten kontakt został usunięty.</string>
+    <string name="msg_widget_hidden">Konto tego kontaktu jest ukryte.</string>
+    <string name="button_choose_another">Wybierz inny</string>
+    <string name="label_widget_small_button">Przycisk w rozmiarze 1 × 1</string>
+    <string name="label_no_button">Bez przycisku</string>
+    <string name="label_change_contact">Zmień kontakt</string>
 </resources>

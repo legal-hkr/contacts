@@ -225,10 +225,10 @@ private fun ListEmptyState(text: String, supporting: String, buttons: (@Composab
 
 /**
  * No access (SPEC §4.8): the button asks while the system still shows its dialog, then leads to the
- * app's page in the system settings; the list loads by itself once access is given.
+ * app's page in the system settings; the list loads by itself once access is given. Also the one-contact widget's choice of a contact.
  */
 @Composable
-private fun NoAccess(onAnswer: () -> Unit) {
+internal fun NoAccess(onAnswer: () -> Unit) {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val ask = rememberContactsAccessAsk(onAnswer)

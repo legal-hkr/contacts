@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one-contact widget's preview for the widget picker: a letter avatar with two letters, as the app's, the name in its pill and both buttons. The content stands 8 dp inside: the picker cuts every preview to its own rounded corners (Calendar's and News's lesson). Only views a remote view inflates. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="SpUsage,ContentDescription,UseAppTint,HardcodedText"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_floating_frame"
+    android:clipChildren="false"
+    android:clipToOutline="true"
+    android:clipToPadding="false"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="2dp">
+
+        <FrameLayout
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:clipChildren="false">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_circle"
+                android:backgroundTint="@color/avatar_violet_fill"
+                android:elevation="2dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="AN"
+                    android:textColor="@color/avatar_violet_on"
+                    android:textSize="40dp" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/widget_contact_pill"
+                android:elevation="2dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxWidth="120dp"
+                android:maxLines="1"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="Anna"
+                android:textColor="@color/widget_on_surface"
+                android:textSize="14dp" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-24dp"
+            android:clipChildren="false"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/widget_button_call"
+                android:elevation="2dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_call"
+                android:tint="@color/widget_on_primary_container" />
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/widget_button_message"
+                android:elevation="2dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_chat"
+                android:tint="@color/widget_on_secondary_container" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

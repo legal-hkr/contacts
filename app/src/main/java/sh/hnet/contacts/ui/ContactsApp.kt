@@ -67,6 +67,7 @@ import sh.hnet.contacts.ui.components.ErrorDetails
 import sh.hnet.contacts.ui.components.ErrorDetailsDialog
 import sh.hnet.contacts.ui.components.LocalAvatarColors
 import sh.hnet.contacts.ui.components.reportFailure
+import sh.hnet.contacts.ui.contact.Action
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
 import sh.hnet.contacts.ui.duplicates.DuplicatesScreen
@@ -87,6 +88,7 @@ import sh.hnet.contacts.ui.settings.WhatsNewScreen
 import sh.hnet.contacts.ui.transfer.ExportScreen
 import sh.hnet.contacts.ui.transfer.ImportScreen
 import sh.hnet.contacts.ui.welcome.WizardScreen
+import sh.hnet.contacts.widget.WidgetRequest
 
 /**
  * The app's shell: one back stack with the contact list at its root; Settings and everything else
@@ -330,6 +332,11 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                                 deleteWithUndo(deletion, message)
                             },
                             onOpenContact = { id, key -> open(Screen.Contact(key, id)) },
+                            ask = when (contact.ask) {
+                                WidgetRequest.ASK_CALL -> Action.CALL
+                                WidgetRequest.ASK_MESSAGE -> Action.MESSAGE
+                                else -> null
+                            },
                             onSearch = { name ->
                                 app.pendingSearch.value = name
                                 while (stack.size > 1) stack.removeAt(stack.lastIndex)

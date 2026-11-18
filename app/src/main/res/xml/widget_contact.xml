@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One contact (SPEC §14.2): 2 × 2 by default, resizable from 1 × 1 (the owner, 18 Nov 2026); the contact and the button at 1 × 1 are chosen when it is placed, and again from the launcher's edit. Redrawn on changes of the contacts, never by a period. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="sh.hnet.contacts.widget.ContactWidgetSetupActivity"
+    android:description="@string/desc_widget_contact"
+    android:initialLayout="@layout/widget_contact_loading"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="40dp"
+    android:minResizeHeight="40dp"
+    android:previewLayout="@layout/widget_contact_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    android:widgetFeatures="reconfigurable" />

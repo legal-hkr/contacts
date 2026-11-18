@@ -74,6 +74,29 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_favorites" />
         </receiver>
+        <receiver
+            android:name=".widget.ContactWidget"
+            android:exported="true"
+            android:label="@string/title_widget_contact">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_contact" />
+        </receiver>
+        <!-- The one-contact widget's setup, opened by the launcher through the system when the widget is placed or edited, and by the widget's "Choose another". A task of its own, out of Recents: it isn't the app. -->
+        <activity
+            android:name=".widget.ContactWidgetSetupActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:taskAffinity=""
+            tools:ignore="DiscouragedApi,LockedOrientationActivity">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
         <!-- Runs when the contacts change while the app is closed (a sync by the account's app), so the widgets follow. Only the system can bind it. -->
         <service
             android:name=".widget.ChangeJob"

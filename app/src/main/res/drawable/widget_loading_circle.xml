@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one-contact widget before its first drawing (SPEC §14.3): an empty circle on the surface container. The size only gives the shape its proportions: the image view scales it to fit. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/widget_surface_container" />
+    <size android:width="48dp" android:height="48dp" />
+</shape>

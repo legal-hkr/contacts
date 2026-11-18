@@ -55,12 +55,14 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -121,6 +123,7 @@ fun ContactScreen(
     onDelete: (Deletion, String) -> Unit,
     onOpenContact: (Long, String) -> Unit,
     onSearch: (String) -> Unit,
+    ask: Action? = null,
 ) {
     val app = LocalContext.current.applicationContext as ContactsApplication
     val viewModel: ContactViewModel = viewModel(key = "contact:$lookupKey") { ContactViewModel(app, lookupKey, id) }
@@ -161,7 +164,7 @@ fun ContactScreen(
             ContactState.Gone -> EmptyState(R.drawable.ic_person_off, stringResource(R.string.msg_contact_gone)) {
                 Button(onClick = onBack) { Text(stringResource(R.string.button_back_to_list)) }
             }
-            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete, onMoved, onJoin)
+            is ContactState.Ready -> ContactContent(current.contact, photo, listState, viewModel, snackbars, messageScope, onOpenContact, onSearch, onDelete, onMoved, onJoin, ask)
         }
     }
     // Edit (SPEC §6.1): a FAB as on the list; none for a contact only in read-only accounts
@@ -190,6 +193,7 @@ private fun ContactContent(
     onDelete: (Deletion, String) -> Unit,
     onMoved: (Moved, String, String?) -> Unit,
     onJoin: (Long, String) -> Unit,
+    ask: Action?,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as ContactsApplication
@@ -227,6 +231,15 @@ private fun ContactContent(
             default != null -> run(default.value)
             values.size == 1 -> run(values[0].value)
             else -> choosing = Choice(action, values)
+        }
+    }
+
+    // Opened by the one-contact widget for a call or a message it couldn't make alone (several numbers, none the default): the number sheet at once, and only once
+    var asked by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(contact.id) {
+        if (ask != null && !asked) {
+            asked = true
+            pick(phones, ask) { number -> if (ask == Action.MESSAGE) text(number) else dial(number) }
         }
     }
 

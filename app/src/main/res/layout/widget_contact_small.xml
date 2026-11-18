@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one-contact widget at 1 × 1 (the owner, 18 Nov 2026): the round photo and the button chosen when the widget was set up – Call or Message, on its container, in the circle's bottom end corner over its edge – or none. Sizes are set in code. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="ContentDescription,UseAppTint,UselessParent"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_floating_frame"
+    android:clipChildren="false"
+    android:clipToOutline="true">
+
+    <FrameLayout
+        android:id="@+id/disc"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:clipChildren="false">
+
+        <include layout="@layout/widget_avatar" />
+
+        <ImageView
+            android:id="@+id/call"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/widget_button_call"
+            android:elevation="2dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_call"
+            android:tint="@color/widget_on_primary_container" />
+
+        <ImageView
+            android:id="@+id/message"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/widget_button_message"
+            android:elevation="2dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_chat"
+            android:tint="@color/widget_on_secondary_container" />
+    </FrameLayout>
+</FrameLayout>
