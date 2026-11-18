@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import sh.hnet.contacts.model.AccountKey
+import sh.hnet.contacts.model.Avatars
 import sh.hnet.contacts.model.CardContact
 import sh.hnet.contacts.model.ContactDetails
 import sh.hnet.contacts.model.ContactRow
@@ -219,6 +220,7 @@ class ContactSource(private val context: Context) {
         }
         val companies = if (settings.companyLine) companies() else emptyMap()
         val shortNames = shortNames()
+        val initials = initials()
         val rows = ArrayList<Pair<ContactRow, Boolean>>()
         resolver.query(
             ContactsContract.Contacts.CONTENT_URI,
@@ -247,6 +249,7 @@ class ContactSource(private val context: Context) {
                     starred = cursor.getInt(5) != 0,
                     company = companies[id],
                     shortName = shortNames[id],
+                    initials = initials[id],
                 ) to (id in shown)
             }
         }
@@ -319,6 +322,24 @@ class ContactSource(private val context: Context) {
             }
         }
         return given + nicknames
+    }
+
+    /** The letter avatar's letters per contact (the owner, 18 Nov 2026): from the first name row with a given or family name. */
+    private fun initials(): Map<Long, String> {
+        val result = HashMap<Long, String>()
+        val locale = Locale.getDefault()
+        resolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            arrayOf(ContactsContract.Data.CONTACT_ID, StructuredName.GIVEN_NAME, StructuredName.FAMILY_NAME),
+            "${ContactsContract.Data.MIMETYPE} = ?", arrayOf(StructuredName.CONTENT_ITEM_TYPE), null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(0)
+                if (id in result) continue
+                Avatars.initials(cursor.getString(1), cursor.getString(2), locale)?.let { result[id] = it }
+            }
+        }
+        return result
     }
 
     /** "company, title", or whichever exists, per contact: the first organization the storage gives. */
@@ -414,6 +435,7 @@ class ContactSource(private val context: Context) {
         var phoneticGiven: String? = null
         var phoneticFamily: String? = null
         var company: String? = null
+        var initials: String? = null
         val values = ArrayList<Detail>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
@@ -437,6 +459,7 @@ class ContactSource(private val context: Context) {
                 }
                 when (cursor.getString(2)) {
                     StructuredName.CONTENT_ITEM_TYPE -> {
+                        if (initials == null) initials = Avatars.initials(cursor.getString(4), cursor.getString(5), Locale.getDefault())
                         if (phoneticGiven == null) phoneticGiven = cursor.getString(9)?.trim()?.takeIf { it.isNotEmpty() }
                         if (phoneticFamily == null) phoneticFamily = cursor.getString(10)?.trim()?.takeIf { it.isNotEmpty() }
                     }
@@ -474,6 +497,7 @@ class ContactSource(private val context: Context) {
             starred = starred,
             details = grouped,
             sources = sources,
+            initials = initials,
         )
     }
 

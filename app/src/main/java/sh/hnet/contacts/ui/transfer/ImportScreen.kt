@@ -58,6 +58,7 @@ import java.text.NumberFormat
 import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.data.ImportJob
+import sh.hnet.contacts.model.Avatars
 import sh.hnet.contacts.model.CardContact
 import sh.hnet.contacts.model.CardValue
 import sh.hnet.contacts.model.Detail
@@ -221,7 +222,7 @@ private fun Ready(viewModel: ImportViewModel, state: ImportViewModel.State.Ready
                     shapes = groupShapes(index, contacts.size),
                     colors = settingsRowColors(),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 1.dp),
-                    leadingContent = { Avatar(contact.displayName, contact.displayName, null, 40.dp) },
+                    leadingContent = { Avatar(contact.displayName, contact.displayName, null, 40.dp, initials = Avatars.initials(contact.name["data2"], contact.name["data3"], locale)) },
                     supportingContent = second?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
                     trailingContent = { Checkbox(checked = index in viewModel.selected, onCheckedChange = null, enabled = !busy) },
                 ) {
@@ -288,7 +289,7 @@ private fun Preview(contact: CardContact, photo: String?, region: String) {
     val company = contact.values[EditKind.COMPANY]?.firstOrNull()?.let { listOf(it.part("data1"), it.part("data4")).filter { p -> p.isNotEmpty() }.joinToString(", ") }?.ifEmpty { null }
     val phonetic = listOfNotNull(contact.name["data7"], contact.name["data9"]).joinToString(" ").ifEmpty { null }
     Column {
-        Header(contact.displayName, contact.displayName, photo, contact.values[EditKind.NICKNAME]?.firstOrNull()?.part("data1"), phonetic, company, null)
+        Header(contact.displayName, contact.displayName, photo, contact.values[EditKind.NICKNAME]?.firstOrNull()?.part("data1"), phonetic, company, null, Avatars.initials(contact.name["data2"], contact.name["data3"], LocalConfiguration.current.locales[0]))
         val details = details(contact)
         for (kind in DetailKind.entries) {
             val values = details[kind] ?: continue

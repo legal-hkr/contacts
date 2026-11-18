@@ -231,7 +231,7 @@ private fun ContactContent(
     }
 
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = WindowInsets.navigationBars.asPaddingValues()) {
-        item(key = "header") { Header(contact.name, contact.lookupKey, contact.photo, contact.nickname, contact.phonetic, contact.company, hint) }
+        item(key = "header") { Header(contact.name, contact.lookupKey, contact.photo, contact.nickname, contact.phonetic, contact.company, hint, contact.initials) }
         if (contact.readOnly) {
             item(key = "read-only") { ReadOnlyCard(contact.sources) }
         }
@@ -321,10 +321,10 @@ private class QuickAction(@param:DrawableRes val icon: Int, val label: String, v
 
 /** The header (SPEC §6.2): the photo or letter avatar at 112 dp, the name, then nickname, phonetic name and company, each only when present. */
 @Composable
-internal fun Header(name: String, lookupKey: String, photo: String?, nickname: String?, phonetic: String?, company: String?, hint: String?) {
+internal fun Header(name: String, lookupKey: String, photo: String?, nickname: String?, phonetic: String?, company: String?, hint: String?, initials: String? = null) {
     val photoLabel = stringResource(R.string.content_description_photo, name)
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Avatar(name, lookupKey, photo, 112.dp, Modifier.semantics { if (photo != null) contentDescription = photoLabel }, hint = hint)
+        Avatar(name, lookupKey, photo, 112.dp, Modifier.semantics { if (photo != null) contentDescription = photoLabel }, hint = hint, initials = initials)
         Text(
             name,
             style = MaterialTheme.typography.headlineSmall,

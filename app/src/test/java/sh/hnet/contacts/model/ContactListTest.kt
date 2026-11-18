@@ -75,4 +75,15 @@ class ContactListTest {
         assertEquals(key, AccountKey.of(key.key))
         assertEquals(AccountKey("", ""), AccountKey.of(AccountKey("", "").key))
     }
+
+    @Test
+    fun initialsAreGivenThenFamilyNameAlways() {
+        val pl = java.util.Locale.forLanguageTag("pl")
+        assertEquals("JK", Avatars.initials("Jan", "Kowalski", pl))
+        assertEquals("ŁŻ", Avatars.initials("łucja", "żak", pl))
+        assertEquals("J", Avatars.initials("Jan", null, pl))
+        assertEquals("K", Avatars.initials(" ", "Kowalski", pl))
+        assertEquals(null, Avatars.initials(null, null, pl))
+        assertEquals("A", Avatars.initials("Ala", "123", pl))
+    }
 }

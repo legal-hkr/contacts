@@ -74,7 +74,7 @@ class BackupManager(private val app: ContactsApplication, private val stamps: Sh
         val s = backup.settings
         val hidden = backup.accounts.filter { !it.shown }.map { AccountKey(it.type, it.name).key }.toSet()
         val defaultAccount = if (s.defaultAccountType != null && s.defaultAccountName != null) AccountKey(s.defaultAccountType, s.defaultAccountName).key else null
-        app.preferences.replace(ListSettings(sortByLast = s.sortBy == SORT_LAST, lastFirst = s.nameOrder == ORDER_LAST_FIRST, companyLine = s.companyLine ?: false), hidden, defaultAccount)
+        app.preferences.replace(ListSettings(sortByLast = s.sortBy == SORT_LAST, lastFirst = s.nameOrder == ORDER_LAST_FIRST, companyLine = s.companyLine ?: false, avatarColors = s.avatarColors != COLORS_THEME), hidden, defaultAccount)
     }
 
     private suspend fun snapshot(): BackupFile {
@@ -91,6 +91,7 @@ class BackupManager(private val app: ContactsApplication, private val stamps: Sh
                 sortBy = if (list.sortByLast) SORT_LAST else SORT_FIRST,
                 nameOrder = if (list.lastFirst) ORDER_LAST_FIRST else ORDER_FIRST_LAST,
                 companyLine = list.companyLine,
+                avatarColors = if (list.avatarColors) COLORS_MANY else COLORS_THEME,
                 defaultAccountType = defaultAccount?.type,
                 defaultAccountName = defaultAccount?.name,
             ),
@@ -111,6 +112,8 @@ class BackupManager(private val app: ContactsApplication, private val stamps: Sh
         const val LAST_BACKUP = "last_backup"
         const val SORT_FIRST = "first"
         const val SORT_LAST = "last"
+        const val COLORS_MANY = "many"
+        const val COLORS_THEME = "theme"
         const val ORDER_FIRST_LAST = "first_last"
         const val ORDER_LAST_FIRST = "last_first"
         /** Far above any real backup: a few settings and a line per account. */

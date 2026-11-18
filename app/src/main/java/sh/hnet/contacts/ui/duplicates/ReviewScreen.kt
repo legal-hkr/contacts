@@ -160,7 +160,7 @@ private fun Review(
                         Modifier.width(if (ids.size > 2) 156.dp else 160.dp).background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp)).padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Avatar(row?.name.orEmpty(), row?.lookupKey.orEmpty(), row?.photo, 56.dp)
+                        Avatar(row?.name.orEmpty(), row?.lookupKey.orEmpty(), row?.photo, 56.dp, initials = row?.initials)
                         Text(row?.name.orEmpty(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
                         Text(entries.joinToString(", ") { accountOf(it) }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

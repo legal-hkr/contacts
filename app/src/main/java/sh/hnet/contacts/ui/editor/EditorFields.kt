@@ -9,12 +9,13 @@ import android.provider.ContactsContract.CommonDataKinds.Relation
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
 import android.provider.ContactsContract.CommonDataKinds.Website
 import androidx.annotation.StringRes
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -118,15 +119,14 @@ private fun asDetail(value: FormValue) = Detail(
 
 /**
  * The type field under a value (SPEC §7.4.1, moved from the end of the value's row, where 132 dp
- * held about six characters – the owner, 17 Nov 2026): a tap opens the types and "Custom label…";
- * a long press on a number or e-mail offers "Set as default" / "Remove as default", and the field
- * says ", default" itself, so nothing moves when the default changes.
+ * held about six characters – the owner, 17 Nov 2026): a tap opens the types and "Custom label…",
+ * and for a number or e-mail one of several a second group with "Set as default", or "Default"
+ * checked, which takes it off again (the owner, 18 Nov 2026: no long press). The field says
+ * ", default" itself, so nothing moves when the default changes.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TypeField(value: FormValue, onChange: (FormValue) -> Unit, onDefault: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
     var menu by remember { mutableStateOf(false) }
-    var defaultMenu by remember { mutableStateOf(false) }
     var custom by rememberSaveable { mutableStateOf(false) }
     val options = TYPE_OPTIONS[value.kind].orEmpty()
     val name = typeName(value)
@@ -140,10 +140,11 @@ fun TypeField(value: FormValue, onChange: (FormValue) -> Unit, onDefault: ((Bool
             trailingIcon = { Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
         )
-        // The field itself takes no typing: a tap and a long press go to the box over it
-        Box(Modifier.matchParentSize().combinedClickable(onClick = { menu = true }, onLongClick = onDefault?.let { { defaultMenu = true } }))
+        // The field itself takes no typing: a tap goes to the box over it
+        Box(Modifier.matchParentSize().clickable { menu = true })
         DropdownMenuPopup(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
+            val groups = if (onDefault != null) 2 else 1
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, groups)) {
                 val count = options.size + 1
                 options.forEachIndexed { index, option ->
                     DropdownMenuItem(
@@ -164,15 +165,15 @@ fun TypeField(value: FormValue, onChange: (FormValue) -> Unit, onDefault: ((Bool
                     },
                 )
             }
-        }
-        if (onDefault != null) {
-            DropdownMenuPopup(expanded = defaultMenu, onDismissRequest = { defaultMenu = false }) {
-                DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
+            if (onDefault != null) {
+                Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+                DropdownMenuGroup(shapes = MenuDefaults.groupShape(1, groups)) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(if (value.isDefault) R.string.menu_unset_default else R.string.menu_set_default)) },
+                        text = { Text(stringResource(if (value.isDefault) R.string.menu_is_default else R.string.menu_set_default), maxLines = 1) },
+                        leadingIcon = if (value.isDefault) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = null) }) else null,
                         shape = MenuDefaults.itemShape(0, 1).shape,
                         onClick = {
-                            defaultMenu = false
+                            menu = false
                             onDefault(!value.isDefault)
                         },
                     )

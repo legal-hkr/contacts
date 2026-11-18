@@ -27,6 +27,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -57,10 +59,12 @@ import sh.hnet.contacts.about.WhatsNew
 import sh.hnet.contacts.data.Deletion
 import sh.hnet.contacts.data.ImportJob
 import sh.hnet.contacts.data.Moved
+import sh.hnet.contacts.model.ListSettings
 import sh.hnet.contacts.ui.accounts.AccountsScreen
 import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.components.ErrorDetails
 import sh.hnet.contacts.ui.components.ErrorDetailsDialog
+import sh.hnet.contacts.ui.components.LocalAvatarColors
 import sh.hnet.contacts.ui.components.reportFailure
 import sh.hnet.contacts.ui.contact.ContactScreen
 import sh.hnet.contacts.ui.contacts.ContactsScreen
@@ -224,6 +228,8 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
         }
     }
 
+    val listSettings by app.preferences.listSettings.collectAsStateWithLifecycle(ListSettings())
+    CompositionLocalProvider(LocalAvatarColors provides listSettings.avatarColors) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Box(Modifier.fillMaxSize()) {
             NavDisplay(
@@ -405,6 +411,7 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
                 Snackbar(data, shape = MaterialTheme.shapes.extraLarge, modifier = Modifier.padding(horizontal = 12.dp))
             }
         }
+    }
     }
     // A failed import's details, with Undo for what it wrote before failing (owner's decision of 18 Nov 2026)
     importError?.let { (error, written) ->

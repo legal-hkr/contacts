@@ -17,7 +17,7 @@ private val Context.settings by preferencesDataStore("settings")
 class Preferences(private val context: Context) {
     /** Settings › List (SPEC §13.2). */
     val listSettings: Flow<ListSettings> = context.settings.data.map {
-        ListSettings(sortByLast = it[SORT_BY_LAST] ?: false, lastFirst = it[LAST_FIRST] ?: false, companyLine = it[COMPANY_LINE] ?: false)
+        ListSettings(sortByLast = it[SORT_BY_LAST] ?: false, lastFirst = it[LAST_FIRST] ?: false, companyLine = it[COMPANY_LINE] ?: false, avatarColors = it[AVATAR_COLORS] ?: true)
     }.distinctUntilChanged()
 
     suspend fun setSortByLast(on: Boolean) = context.settings.edit { it[SORT_BY_LAST] = on }
@@ -25,6 +25,8 @@ class Preferences(private val context: Context) {
     suspend fun setLastFirst(on: Boolean) = context.settings.edit { it[LAST_FIRST] = on }
 
     suspend fun setCompanyLine(on: Boolean) = context.settings.edit { it[COMPANY_LINE] = on }
+
+    suspend fun setAvatarColors(many: Boolean) = context.settings.edit { it[AVATAR_COLORS] = many }
 
     /**
      * The accounts hidden in the list, by [sh.hnet.contacts.model.AccountKey.key] (SPEC §8.1): the
@@ -50,6 +52,7 @@ class Preferences(private val context: Context) {
         it[SORT_BY_LAST] = list.sortByLast
         it[LAST_FIRST] = list.lastFirst
         it[COMPANY_LINE] = list.companyLine
+        it[AVATAR_COLORS] = list.avatarColors
         it[HIDDEN_ACCOUNTS] = hidden
     }
 
@@ -60,6 +63,7 @@ class Preferences(private val context: Context) {
         val SORT_BY_LAST = booleanPreferencesKey("sort_by_last")
         val LAST_FIRST = booleanPreferencesKey("last_first")
         val COMPANY_LINE = booleanPreferencesKey("company_line")
+        val AVATAR_COLORS = booleanPreferencesKey("avatar_colors")
         val HIDDEN_ACCOUNTS = stringSetPreferencesKey("hidden_accounts")
         val DEFAULT_ACCOUNT = stringPreferencesKey("default_account")
     }

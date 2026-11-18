@@ -58,6 +58,11 @@ fun ListSettingsScreen(onBack: () -> Unit) {
                 }
             }
             row { shapes ->
+                ChoiceRow(shapes, stringResource(R.string.label_avatar_colors), stringResource(R.string.label_avatar_colors_many), stringResource(R.string.label_avatar_colors_theme), second = !settings.avatarColors) {
+                    scope.launch { app.preferences.setAvatarColors(!it) }
+                }
+            }
+            row { shapes ->
                 SettingsSwitchRow(shapes, R.drawable.ic_list, stringResource(R.string.label_company_line), settings.companyLine, { scope.launch { app.preferences.setCompanyLine(it) } }, stringResource(R.string.desc_company_line))
             }
         }

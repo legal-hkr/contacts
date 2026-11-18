@@ -27,7 +27,8 @@ data class AccountKey(val type: String, val name: String) {
  * @param lastFirst Show names as "Last, First" (the storage's alternative display name)
  * @param companyLine The company (and title) on a second line of a row
  */
-data class ListSettings(val sortByLast: Boolean = false, val lastFirst: Boolean = false, val companyLine: Boolean = false)
+/** @param avatarColors Letter avatars in many colors (Calendar's palette); false keeps the theme's three (the owner, 18 Nov 2026) */
+data class ListSettings(val sortByLast: Boolean = false, val lastFirst: Boolean = false, val companyLine: Boolean = false, val avatarColors: Boolean = true)
 
 /**
  * One contact as the list shows it (SPEC §4.5).
@@ -36,6 +37,7 @@ data class ListSettings(val sortByLast: Boolean = false, val lastFirst: Boolean 
  * @param sortName The name the list is sorted and filed by, in the order of [ListSettings.sortByLast]
  * @param photo The storage's thumbnail address, or null for the letter avatar
  * @param company "company, title", or whichever of the two exists; null when the setting is off or there is none
+ * @param initials The letter avatar's letters (the first of the given name and of the family name); null to take the name's first letter
  * @param shortName What the favorites row shows under the avatar (SPEC §4.3): the nickname, else the given name; null for other contacts or when neither exists
  */
 data class ContactRow(
@@ -47,6 +49,7 @@ data class ContactRow(
     val starred: Boolean,
     val company: String? = null,
     val shortName: String? = null,
+    val initials: String? = null,
 )
 
 /** What the list draws: a letter's header, then its contacts. */
@@ -129,8 +132,24 @@ object Avatars {
         return text.substring(0, end).uppercase(locale)
     }
 
+    /** The colors of the palette in many colors (Calendar's, without Graphite). */
+    const val PALETTE = 11
+
     /** Which of the [TONES] a contact's avatar takes: by its lookup key, so it stays after a sync and between launches. */
     fun tone(lookupKey: String): Int = Math.floorMod(lookupKey.hashCode(), TONES)
+
+    /** Which of the [PALETTE]'s colors a contact's avatar takes, by its lookup key as [tone]. */
+    fun color(lookupKey: String): Int = Math.floorMod(lookupKey.hashCode(), PALETTE)
+
+    /**
+     * The letter avatar's letters (the owner, 18 Nov 2026): the first of the given name and the first
+     * of the family name, always in that order; one when only one of them begins with a letter; null
+     * when neither does (a nickname or a company alone: the name's first letter then).
+     */
+    fun initials(given: String?, family: String?, locale: Locale): String? {
+        val letters = listOfNotNull(given, family).map { initial(it, locale) }.filter { it != ContactList.OTHER }
+        return letters.joinToString("").ifEmpty { null }
+    }
 }
 
 /**

@@ -45,6 +45,8 @@ data class ContactDetails(
     val starred: Boolean,
     val details: Map<DetailKind, List<Detail>>,
     val sources: List<Source>,
+    /** The letter avatar's letters, as [ContactRow.initials]. */
+    val initials: String? = null,
 ) {
     /** Only read-only entries: no editing, no deleting (SPEC §6.6). */
     val readOnly: Boolean get() = sources.isNotEmpty() && sources.all { it.readOnly }

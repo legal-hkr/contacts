@@ -37,10 +37,10 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,10 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -87,8 +83,10 @@ import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.FastScroller
 import sh.hnet.contacts.ui.components.TooltipIconButton
+import sh.hnet.contacts.ui.components.groupShapes
 import sh.hnet.contacts.ui.components.onTouchDown
 import sh.hnet.contacts.ui.components.rememberContactsAccessAsk
+import sh.hnet.contacts.ui.components.settingsRowColors
 
 /**
  * The app's root (SPEC §4): the top bar with Search and Settings, then favorites and the contact
@@ -129,18 +127,9 @@ fun ContactsScreen(
     LaunchedEffect(rows) { if (selection.active) selection.set(selection.ids.filter { id -> rows.any { it.id == id } }.toSet()) }
     // Search only where there is something to search: not without access or contacts (SPEC §4.8)
     val searchable = state !is ListState.NoAccess && state !is ListState.NoContacts
-    // The FAB hides while the list scrolls down and comes back when it scrolls up (SPEC §4.10)
-    var fabShown by remember { mutableStateOf(true) }
-    val fabScroll = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -1f) fabShown = false else if (available.y > 1f) fabShown = true
-                return Offset.Zero
-            }
-        }
-    }
+    // The FAB stays while the list scrolls (the owner, 17 Nov 2026; SPEC §4.10 hid it)
     val fab = !searching && !selection.active && (state is ListState.Loading || state is ListState.AllHidden || state is ListState.Ready)
-    Box(Modifier.fillMaxSize().nestedScroll(fabScroll)) {
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         if (selection.active) {
             SelectionBar(selection.ids.size, allSelected = selection.ids.size == rows.size, onClose = selection::clear, onSelectAll = {
@@ -190,7 +179,7 @@ fun ContactsScreen(
         }
     }
         AnimatedVisibility(
-            visible = fab && fabShown,
+            visible = fab,
             enter = scaleIn(),
             exit = scaleOut(),
             modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp),
@@ -327,6 +316,18 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
         }
         sections to starts
     }
+    // Each letter's rows are one segmented group (the owner, 18 Nov 2026, as News's days): a row's place and its group's size
+    val places = remember(state) {
+        val result = HashMap<Any, Pair<Int, Int>>()
+        var group = ArrayList<Any>()
+        fun close() {
+            group.forEachIndexed { i, key -> result[key] = i to group.size }
+            group = ArrayList()
+        }
+        for (entry in state.entries) if (entry is ListEntry.Header) close() else group += entry.key
+        close()
+        result
+    }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
@@ -353,19 +354,23 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
                         entry.letter,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 4.dp).semantics { heading() },
+                        modifier = Modifier.padding(start = 32.dp, top = 16.dp, bottom = 8.dp).semantics { heading() },
                     )
                     is ListEntry.Contact -> {
                         val contact = entry.contact
                         val company = contact.company.takeIf { state.companyLine }
                         val selected = contact.id in selection.ids
-                        ListItem(
+                        val (place, size) = places[entry.key] ?: (0 to 1)
+                        SegmentedListItem(
                             // Selecting: a tap toggles the row; otherwise it opens the contact, and a long press starts the selection
                             onClick = { if (selection.active) selection.toggle(contact.id) else onOpenContact(contact) },
                             onLongClick = { selection.toggle(contact.id) },
-                            modifier = Modifier.onTouchDown(contact.id, onPress = { if (!selection.active) app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
-                            colors = ListItemDefaults.colors(containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface),
-                            leadingContent = { if (selected) SelectedMark(40.dp) else Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp) },
+                            shapes = groupShapes(place, size),
+                            modifier = Modifier
+                                .padding(start = 16.dp, end = 16.dp, bottom = if (place < size - 1) 2.dp else 0.dp)
+                                .onTouchDown(contact.id, onPress = { if (!selection.active) app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
+                            colors = if (selected) ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.secondaryContainer) else settingsRowColors(),
+                            leadingContent = { if (selected) SelectedMark(40.dp) else Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp, initials = contact.initials) },
                             supportingContent = company?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
                         ) {
                             Text(contact.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -407,7 +412,7 @@ private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -
                         .padding(vertical = 4.dp)
                         .semantics(mergeDescendants = true) { contentDescription = contact.name },
                 ) {
-                    Avatar(contact.name, contact.lookupKey, contact.photo, 56.dp)
+                    Avatar(contact.name, contact.lookupKey, contact.photo, 56.dp, initials = contact.initials)
                     Text(
                         contact.shortName ?: contact.name,
                         style = MaterialTheme.typography.labelMedium,

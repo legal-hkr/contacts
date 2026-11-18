@@ -81,7 +81,6 @@
     <string name="label_custom_label">Custom label…</string>
     <string name="title_custom_label">Custom label</string>
     <string name="menu_set_default">Set as default</string>
-    <string name="menu_unset_default">Remove as default</string>
     <string name="label_no_year">No year</string>
     <string name="msg_joined_editing">This contact is joined from several entries (%1$d). Each value is saved to its own account. New fields go to the account: %2$s.</string>
     <string name="label_read_only_value">%1$s, read-only</string>
@@ -244,6 +243,12 @@
     <string name="desc_export_all">One vCard file</string>
     <string name="button_import_vcard">Import from a vCard file</string>
     <string name="button_export_all_short">Export all</string>
+
+    <!-- Later list (18 Nov 2026) -->
+    <string name="label_avatar_colors">Avatar colors</string>
+    <string name="label_avatar_colors_many">Many</string>
+    <string name="label_avatar_colors_theme">Theme only</string>
+    <string name="menu_is_default">Default</string>
 
     <!-- Search -->
     <string name="content_description_search">Search</string>

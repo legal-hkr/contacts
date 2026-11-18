@@ -14,14 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSearchBarState
@@ -55,7 +55,9 @@ import sh.hnet.contacts.model.SearchResult
 import sh.hnet.contacts.ui.components.Avatar
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.TooltipIconButton
+import sh.hnet.contacts.ui.components.groupShapes
 import sh.hnet.contacts.ui.components.onTouchDown
+import sh.hnet.contacts.ui.components.settingsRowColors
 import sh.hnet.contacts.ui.contact.typeLabel
 
 /**
@@ -128,28 +130,31 @@ fun SearchResults(state: SearchState, onOpenContact: (ContactRow) -> Unit, onSea
                         stringResource(title),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 4.dp).semantics { heading() },
+                        modifier = Modifier.padding(start = 32.dp, top = 16.dp, bottom = 8.dp).semantics { heading() },
                     )
                 }
             }
-            items(group, key = { it.contact.id }) { result -> ResultRow(result, onOpenContact) }
+            // One segmented group per kind of match, as the list's letters and News's results (the owner, 18 Nov 2026)
+            itemsIndexed(group, key = { _, it -> it.contact.id }) { place, result -> ResultRow(result, place, group.size, onOpenContact) }
         }
     }
 }
 
 @Composable
-private fun ResultRow(result: SearchResult, onOpenContact: (ContactRow) -> Unit) {
+private fun ResultRow(result: SearchResult, place: Int, size: Int, onOpenContact: (ContactRow) -> Unit) {
     val contact = result.contact
     val keyboard = LocalSoftwareKeyboardController.current
     val headline = if (result.field == null) highlighted(contact.name, result.range) else AnnotatedString(contact.name)
     val app = LocalContext.current.applicationContext as ContactsApplication
-    ListItem(
+    SegmentedListItem(
         onClick = {
             keyboard?.hide()
             onOpenContact(contact)
         },
-        modifier = Modifier.onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
-        leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp) },
+        shapes = groupShapes(place, size),
+        colors = settingsRowColors(),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = if (place < size - 1) 2.dp else 0.dp).onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
+        leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp, initials = contact.initials) },
         supportingContent = result.field?.let { field -> { Text(matchLine(field.kind, field.type, field.label, result.text, result.range), maxLines = 1, overflow = TextOverflow.Ellipsis) } },
     ) {
         Text(headline, maxLines = 1, overflow = TextOverflow.Ellipsis)

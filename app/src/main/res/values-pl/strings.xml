@@ -81,7 +81,6 @@
     <string name="label_custom_label">Własna etykieta…</string>
     <string name="title_custom_label">Własna etykieta</string>
     <string name="menu_set_default">Ustaw jako domyślny</string>
-    <string name="menu_unset_default">Usuń jako domyślny</string>
     <string name="label_no_year">Bez roku</string>
     <string name="msg_joined_editing">Ten kontakt powstał z połączenia wpisów (%1$d). Każda wartość zapisuje się na swoim koncie. Nowe pola trafią na konto: %2$s.</string>
     <string name="label_read_only_value">%1$s, tylko do odczytu</string>
@@ -240,6 +239,12 @@
     <string name="desc_export_all">Jeden plik vCard</string>
     <string name="button_import_vcard">Importuj z pliku vCard</string>
     <string name="button_export_all_short">Eksportuj wszystkie</string>
+
+    <!-- Later list (18 Nov 2026) -->
+    <string name="label_avatar_colors">Kolory awatarów</string>
+    <string name="label_avatar_colors_many">Wiele</string>
+    <string name="label_avatar_colors_theme">Tylko z motywu</string>
+    <string name="menu_is_default">Domyślny</string>
 
     <!-- Search -->
     <string name="content_description_search">Szukaj</string>

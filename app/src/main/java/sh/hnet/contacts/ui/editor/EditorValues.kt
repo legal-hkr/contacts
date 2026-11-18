@@ -137,7 +137,8 @@ fun ValueFields(value: FormValue, onChange: (FormValue) -> Unit, onRemove: () ->
                 EditKind.IM -> R.string.menu_field_im to KeyboardType.Email
                 else -> R.string.menu_field_sip to KeyboardType.Email
             }
-            val defaultable = value.kind == EditKind.PHONE || value.kind == EditKind.EMAIL
+            // A default only means something among several (or to take it off the last one left)
+            val defaultable = (value.kind == EditKind.PHONE || value.kind == EditKind.EMAIL) && (!onlyOne || value.isDefault)
             ValueRow(remove) { Field(value.part("data1"), { set("data1", it) }, label, Modifier.weight(1f), keyboard = keyboard, capitalize = value.kind == EditKind.RELATION) }
             TypeField(value, onChange, if (defaultable) onDefault else null, Modifier.fillMaxWidth())
         }

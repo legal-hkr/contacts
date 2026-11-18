@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Avatar colors (the owner, 17 and 18 Nov 2026): Calendar's calendar palette without Graphite, its fill and the color on it. Keep in step with Calendar's calendar_colors.xml. -->
+<resources>
+    <color name="avatar_red_fill">#FFB4A9</color>
+    <color name="avatar_red_on">#5F1410</color>
+    <color name="avatar_orange_fill">#FFB787</color>
+    <color name="avatar_orange_on">#522300</color>
+    <color name="avatar_amber_fill">#F5BF48</color>
+    <color name="avatar_amber_on">#412D00</color>
+    <color name="avatar_olive_fill">#C8CC6A</color>
+    <color name="avatar_olive_on">#2F3200</color>
+    <color name="avatar_green_fill">#96D68F</color>
+    <color name="avatar_green_on">#003A0A</color>
+    <color name="avatar_teal_fill">#6FD6D8</color>
+    <color name="avatar_teal_on">#003738</color>
+    <color name="avatar_sky_fill">#86CEFF</color>
+    <color name="avatar_sky_on">#00344C</color>
+    <color name="avatar_blue_fill">#B0C6FF</color>
+    <color name="avatar_blue_on">#002D6E</color>
+    <color name="avatar_violet_fill">#D3BBFF</color>
+    <color name="avatar_violet_on">#3B1680</color>
+    <color name="avatar_magenta_fill">#FFADE4</color>
+    <color name="avatar_magenta_on">#5C0050</color>
+    <color name="avatar_raspberry_fill">#FFB1C2</color>
+    <color name="avatar_raspberry_on">#65002A</color>
+</resources>
