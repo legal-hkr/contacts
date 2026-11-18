@@ -72,6 +72,15 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
     /** The save the app took back, for "Discard changes". */
     private var rejectedSave: Saved? = null
 
+    /** The local entries of a joined contact, which the save wrote along with the synced ones (variant A, the owner, 18 Nov 2026): after a rejection the change is already on the phone there. */
+    private val localEntries: List<Long> get() = snapshot?.entries.orEmpty().filter { it.local && !it.readOnly }.map { it.rawContactId }
+
+    /** The rejection card's case: the server took the change back, but a local entry of the contact holds it. */
+    val rejectedKept: Boolean get() = rejected != null && localEntries.isNotEmpty()
+
+    /** The first local entry's photo before a save that changed the photo, for "Discard changes" to put back. */
+    private var photoBefore: ByteArray? = null
+
     /** The values as read, to tell whether anything changed (the discard dialog, SPEC §7.7). */
     private var original: List<FormValue> = emptyList()
 
@@ -193,6 +202,7 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
         // A watch of an earlier save of this contact ends: this save changes the rows it compares
         snapshot?.let { read -> app.uploads.forget(read.entries.map { it.rawContactId }) }
         viewModelScope.launch {
+            photoBefore = if (photo != PhotoChange.None) localEntries.firstOrNull()?.let { app.writer.entryPhoto(it) } else null
             // Created anew only when the contact is gone now, not because the card once said so
             val gone = underneath == Underneath.DELETED && snapshot?.let { read -> app.writer.versions(read.entries.map { it.rawContactId }).isEmpty() } == true
             val saved = app.writer.save(snapshot, values.toList(), account?.account, photo, recreate = gone)
@@ -226,13 +236,24 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
         }
     }
 
-    /** "Save on this phone" after a rejection (D1): the form as a new contact without an account, joined with the one the account's app kept, if any. */
+    /** "Save on this phone" after a rejection (D1): the form as a new contact without an account, joined with the one the account's app kept, if any; for a contact with a local entry, the form into that entry (variant A). */
     fun keepOnPhone(onSaved: (Saved) -> Unit, onFailed: () -> Unit) {
         if (saving) return
         saving = true
         viewModelScope.launch {
-            val local = app.writer.save(null, values.toList(), app.contacts.localTarget(), photo)
+            // A joined contact with a local entry: the whole form goes into that entry, which already holds part of it – no new entry, no duplicate (variant A)
+            val into = localEntries.firstOrNull()
             val kept = rejectedSave
+            if (into != null && kept != null) {
+                val done = app.writer.replaceEntry(into, values.toList(), withName = true)
+                saving = false
+                if (!done) onFailed() else {
+                    rejected = null
+                    onSaved(kept.copy(account = null))
+                }
+                return@launch
+            }
+            val local = app.writer.save(null, values.toList(), app.contacts.localTarget(), photo)
             if (local != null && kept != null && snapshot != null) {
                 try {
                     app.writer.join(listOf(listOf(kept.contactId, local.contactId)))
@@ -253,8 +274,29 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
         listOf("data2", "data5", "data3").mapNotNull { parts[it]?.trim()?.takeIf { part -> part.isNotEmpty() } }.joinToString(" ")
     }.orEmpty()
 
-    /** "Discard changes" after a rejection (D1): the save the account's app took back, for the shell to close the editor as after any save; null for a new contact, which is gone. */
-    fun discardRejected(): Saved? = rejectedSave.takeIf { snapshot != null }
+    /**
+     * "Discard changes" after a rejection (D1): hands [onDone] the save the account's app took back, for the shell to close the editor as after any save – null for a new contact, which is gone. A joined contact's local entries get back what they held before the save, the photo too (variant A, the owner, 18 Nov 2026), so the contact is as it was.
+     */
+    fun discardRejected(onDone: (Saved?) -> Unit) {
+        val read = snapshot
+        val local = localEntries
+        if (read == null || local.isEmpty()) {
+            onDone(rejectedSave.takeIf { read != null })
+            return
+        }
+        if (saving) return
+        saving = true
+        viewModelScope.launch {
+            val name = read.values.firstOrNull { it.kind == EditKind.NAME }
+            for (entry in local) {
+                app.writer.replaceEntry(entry, read.values.filter { value -> value.origins.any { it.rawContactId == entry } }, withName = name?.origins?.any { it.rawContactId == entry } == true)
+            }
+            if (photo != PhotoChange.None) local.firstOrNull()?.let { app.writer.restorePhoto(it, photoBefore) }
+            saving = false
+            rejected = null
+            onDone(rejectedSave)
+        }
+    }
 
     companion object {
         /** The type a new value of a kind starts with (SPEC §7.4.1): Mobile, Personal, Home, Website, Birthday, Other (SIP), Relative (a relation's type is chosen, this is the most general). */

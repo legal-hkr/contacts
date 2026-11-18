@@ -4,6 +4,7 @@ package sh.hnet.contacts.ui.editor
 
 import android.app.LocaleManager
 import android.content.Context
+import android.os.SystemClock
 import android.telephony.TelephonyManager
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -56,6 +59,10 @@ fun PhoneField(text: String, onChange: (String) -> Unit, modifier: Modifier = Mo
     // The country picked from the list, for a code several countries share (+1 Canada, not the United States)
     var chosen by rememberSaveable { mutableStateOf<String?>(null) }
     var picking by remember { mutableStateOf(false) }
+    // The text before a country was picked and when: a keyboard still holding the old text may send it back a moment later, which undid the pick of an empty field (the owner, 18 Nov 2026)
+    var beforePick by remember { mutableStateOf<String?>(null) }
+    var pickedAt by remember { mutableLongStateOf(0L) }
+    val focusManager = LocalFocusManager.current
     // Asked of the system once, not at every keystroke
     val pinned = remember(context) { pinnedRegions(context) }
     val region = PhoneFormat.regionOf(field.text, chosen)
@@ -65,7 +72,11 @@ fun PhoneField(text: String, onChange: (String) -> Unit, modifier: Modifier = Mo
     OutlinedTextField(
         value = field,
         onValueChange = { edited ->
-            if (edited.text == field.text) {
+            val echo = beforePick != null && edited.text == beforePick && SystemClock.uptimeMillis() - pickedAt < ECHO_MS
+            if (echo) {
+                // The keyboard's old text after a pick: the pick stands
+                beforePick = null
+            } else if (edited.text == field.text) {
                 // Only the cursor or the selection moved
                 field = edited
             } else {
@@ -83,6 +94,10 @@ fun PhoneField(text: String, onChange: (String) -> Unit, modifier: Modifier = Mo
                 }
                 CountryMenu(picking, PhoneFormat.hasCode(field.text), pinned, locale, onDismiss = { picking = false }) { picked ->
                     picking = false
+                    // The keyboard goes, so it has nothing to send back over the new number
+                    focusManager.clearFocus()
+                    beforePick = field.text
+                    pickedAt = SystemClock.uptimeMillis()
                     chosen = picked?.region
                     val changed = if (picked == null) PhoneFormat.withoutCountry(field.text) else PhoneFormat.withCountry(field.text, picked.region)
                     field = TextFieldValue(changed, TextRange(changed.length))
@@ -95,6 +110,9 @@ fun PhoneField(text: String, onChange: (String) -> Unit, modifier: Modifier = Mo
     )
 
 }
+
+/** How long after a pick the keyboard's old text is taken for an echo, not for typing. */
+private const val ECHO_MS = 1_000L
 
 /**
  * The countries pinned at the menu's top (the owner, 18 Nov 2026): the country of the mobile network, then the region the phone's settings name (System › Languages, the region of the first language) – in that order, the owner's –, once when they are the same; either left out when unknown.

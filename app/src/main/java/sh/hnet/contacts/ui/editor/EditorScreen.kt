@@ -168,7 +168,7 @@ fun EditorScreen(
                 UploadCard(
                     viewModel,
                     onKeep = { viewModel.keepOnPhone(onSaved) { messageScope.launch { snackbars.showSnackbar(saveFailed, duration = SnackbarDuration.Short) } } },
-                    onDiscard = { viewModel.discardRejected()?.let(onSaved) ?: onClose() },
+                    onDiscard = { viewModel.discardRejected { saved -> saved?.let(onSaved) ?: onClose() } },
                 )
                 Box(Modifier.fillMaxSize()) {
                     Form(
@@ -208,7 +208,13 @@ fun EditorScreen(
             onDismissRequest = { discarding = false },
             title = { Text(stringResource(R.string.title_discard_changes)) },
             text = { Text(stringResource(R.string.msg_discard_changes)) },
-            confirmButton = { TextButton(onClick = { discarding = false; onClose() }) { Text(stringResource(R.string.button_discard)) } },
+            confirmButton = {
+                TextButton(onClick = {
+                    discarding = false
+                    // After a rejection Back's Discard is the card's: a local entry gets its state back (variant A)
+                    if (viewModel.rejected != null) viewModel.discardRejected { saved -> saved?.let(onSaved) ?: onClose() } else onClose()
+                }) { Text(stringResource(R.string.button_discard)) }
+            },
             dismissButton = { TextButton(onClick = { discarding = false }) { Text(stringResource(R.string.button_keep_editing)) } },
         )
     }
@@ -311,7 +317,7 @@ private fun UploadCard(viewModel: EditorViewModel, onKeep: () -> Unit, onDiscard
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(painterResource(R.drawable.ic_sync_problem), contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                Text(stringResource(R.string.msg_upload_rejected, rejected), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                Text(stringResource(if (viewModel.rejectedKept) R.string.msg_upload_rejected_kept else R.string.msg_upload_rejected, rejected), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
             }
             Row(Modifier.align(Alignment.End)) {
                 TextButton(onClick = onDiscard, enabled = !viewModel.saving) { Text(stringResource(R.string.button_discard_changes)) }

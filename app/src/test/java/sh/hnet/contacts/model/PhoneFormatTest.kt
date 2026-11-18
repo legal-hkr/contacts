@@ -87,4 +87,10 @@ class PhoneFormatTest {
         assertTrue(PhoneFormat.hasCode("+800 1234 5678"))
         assertFalse(PhoneFormat.hasCode("112"))
     }
+
+    @Test
+    fun anEmptyFieldGetsTheCodeAlone() {
+        assertEquals("+48", PhoneFormat.withCountry("", "PL").trim())
+        assertEquals("+1", PhoneFormat.withCountry("", "CA").trim())
+    }
 }

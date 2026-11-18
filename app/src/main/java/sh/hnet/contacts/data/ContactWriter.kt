@@ -771,6 +771,47 @@ class ContactWriter(private val context: Context, private val source: ContactSou
     }
 
     /** The photo of every writable entry (SPEC §7.3): set through the entry's display photo, or removed. */
+    /**
+     * Sets the values of the kinds the editor knows in one entry to [values]: its rows of those kinds go and [values] go in anew; the name only [withName] (an entry's own name row the form may not show). Rows of other kinds, the photo and group memberships stay. For a local entry of a joined contact whose synced part the server took back (variant A, the owner, 18 Nov 2026): its state before the save ("Discard changes") or the whole form ("Save on this phone"). False when the storage refused.
+     */
+    suspend fun replaceEntry(rawContactId: Long, values: List<FormValue>, withName: Boolean): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val kinds = Columns.mime.filterKeys { withName || it != EditKind.NAME }
+            val operations = ArrayList<ContentProviderOperation>()
+            operations += ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+                .withSelection("${ContactsContract.Data.RAW_CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} IN (${kinds.values.joinToString(",") { "?" }})", arrayOf(rawContactId.toString()) + kinds.values)
+                .build()
+            values.filter { !it.blank && it.kind in kinds }.forEach { operations += insert(it, rawContactId, newEntry = false) }
+            resolver.applyBatch(ContactsContract.AUTHORITY, operations)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /** One entry's own photo as the storage keeps it (the large one, else the thumbnail), to put back later; null without one. */
+    suspend fun entryPhoto(rawContactId: Long): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            resolver.openAssetFileDescriptor(displayPhoto(rawContactId), "r")?.use { it.createInputStream().readBytes() }
+        } catch (_: Exception) {
+            null
+        } ?: try {
+            resolver.query(ContactsContract.Data.CONTENT_URI, arrayOf(Photo.PHOTO), "${ContactsContract.Data.RAW_CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?", arrayOf(rawContactId.toString(), Photo.CONTENT_ITEM_TYPE), null)
+                ?.use { cursor -> if (cursor.moveToFirst()) cursor.getBlob(0) else null }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Puts [bytes] back as one entry's photo, or removes its photo when null. */
+    suspend fun restorePhoto(rawContactId: Long, bytes: ByteArray?) = withContext(Dispatchers.IO) {
+        try {
+            writePhoto(if (bytes == null) PhotoChange.Remove else PhotoChange.Set(bytes), listOf(rawContactId))
+        } catch (_: Exception) {
+            // The photo stays as the save left it
+        }
+    }
+
     private fun writePhoto(photo: PhotoChange, entries: List<Long>) {
         when (photo) {
             PhotoChange.None -> Unit

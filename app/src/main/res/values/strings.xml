@@ -458,4 +458,5 @@
     <string name="title_country_code">Country code</string>
     <string name="label_no_country_code">No country code</string>
     <string name="content_description_country">Country code: %1$s</string>
+    <string name="msg_upload_rejected_kept">The server didn’t accept the changes (account: %1$s). They’re saved on this phone.</string>
 </resources>
