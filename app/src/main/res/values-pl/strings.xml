@@ -14,11 +14,11 @@
     <!-- Contact list -->
     <string name="title_contacts">Kontakty</string>
     <string name="msg_no_permission">Bez dostępu do kontaktów nie ma tu nic do pokazania.</string>
-    <string name="desc_no_permission">Kontakty zostają w systemie i na kontach. Aplikacja tylko je pokazuje i zmienia.</string>
+    <string name="desc_no_permission">Kontakty pozostają w systemie i na kontach. Aplikacja tylko je pokazuje i zmienia.</string>
     <string name="button_allow_access">Zezwól na dostęp</string>
     <string name="button_open_app_settings">Otwórz ustawienia aplikacji</string>
-    <string name="msg_no_contacts">Nie ma tu jeszcze żadnych kontaktów.</string>
-    <string name="desc_no_contacts">Konta dodaje się w aplikacjach, które je synchronizują, na przykład DAVx⁵. Bez konta kontakty zostają na tym telefonie.</string>
+    <string name="msg_no_contacts">Nie ma jeszcze żadnych kontaktów.</string>
+    <string name="desc_no_contacts">Konta można dodać w aplikacjach, które je synchronizują, na przykład w DAVx⁵. Bez konta kontakty są zapisywane tylko w tym telefonie.</string>
     <string name="msg_all_hidden">Wszystkie konta są ukryte.</string>
     <string name="desc_all_hidden">Kontakty w systemie: %1$s. Żadne konto nie jest pokazywane na liście.</string>
 
@@ -32,7 +32,7 @@
     <string name="button_new_contact">Nowy kontakt</string>
     <string name="tooltip_edit">Edytuj</string>
     <string name="title_new_contact">Nowy kontakt</string>
-    <string name="title_edit_contact">Edytuj kontakt</string>
+    <string name="title_edit_contact">Edycja kontaktu</string>
     <string name="button_save">Zapisz</string>
     <string name="desc_save_disabled">Kontakt jest pusty</string>
     <string name="label_save_to_account">Zapisz na koncie</string>
@@ -56,7 +56,7 @@
     <string name="button_add_phone">Dodaj numer</string>
     <string name="button_add_email">Dodaj e-mail</string>
     <string name="button_add_address">Dodaj adres</string>
-    <string name="button_add_website">Dodaj stronę</string>
+    <string name="button_add_website">Dodaj stronę internetową</string>
     <string name="button_add_date">Dodaj datę</string>
     <string name="button_add_relation">Dodaj relację</string>
     <string name="button_add_im">Dodaj komunikator</string>
@@ -64,7 +64,7 @@
     <string name="button_more_fields">Więcej pól</string>
     <string name="menu_field_address">Adres</string>
     <string name="menu_field_company">Firma i stanowisko</string>
-    <string name="menu_field_website">Strona</string>
+    <string name="menu_field_website">Strona internetowa</string>
     <string name="menu_field_date">Data</string>
     <string name="menu_field_relation">Relacja</string>
     <string name="menu_field_nickname">Pseudonim</string>
@@ -82,11 +82,11 @@
     <string name="title_custom_label">Własna etykieta</string>
     <string name="menu_set_default">Ustaw jako domyślny</string>
     <string name="label_no_year">Bez roku</string>
-    <string name="msg_joined_editing">Ten kontakt powstał z połączenia wpisów (%1$d). Każda wartość zapisuje się na swoim koncie. Nowe pola trafią na konto: %2$s.</string>
+    <string name="msg_joined_editing">Ten kontakt powstał z połączenia wpisów (%1$d). Każda wartość zostanie zapisana na koncie, z którego pochodzi. Nowe pola trafią na konto: %2$s.</string>
     <string name="label_read_only_value">%1$s, tylko do odczytu</string>
-    <string name="msg_changed_while_editing">Ten kontakt zmienił się podczas edycji, prawdopodobnie przez synchronizację. Zapisanie zastąpi tamte zmiany.</string>
+    <string name="msg_changed_while_editing">Ten kontakt został zmieniony podczas edycji, prawdopodobnie przez synchronizację. Zapisanie zastąpi tamte zmiany.</string>
     <string name="button_reload">Wczytaj ponownie</string>
-    <string name="msg_deleted_while_editing">Ten kontakt usunięto podczas edycji. Zapisanie utworzy go od nowa.</string>
+    <string name="msg_deleted_while_editing">Ten kontakt został usunięty podczas edycji. Zapisanie utworzy go ponownie.</string>
     <string name="title_discard_changes">Odrzucić zmiany?</string>
     <string name="msg_discard_changes">Zmiany w tym kontakcie nie zostały zapisane.</string>
     <string name="button_keep_editing">Edytuj dalej</string>
@@ -94,7 +94,7 @@
     <string name="content_description_remove_value">Usuń</string>
     <string name="error_save_failed">Nie udało się zapisać kontaktu.</string>
     <string name="error_photo_unreadable">Nie można odczytać tego obrazu.</string>
-    <string name="error_photo_not_saved">Kontakt zapisano, ale zdjęcia nie udało się zapisać.</string>
+    <string name="error_photo_not_saved">Zapisano kontakt, ale nie udało się zapisać zdjęcia.</string>
 
     <!-- Settings › Contacts -->
     <string name="label_settings_contacts">Kontakty</string>
@@ -109,18 +109,18 @@
     <string name="menu_delete">Usuń</string>
     <string name="desc_delete_two">Z obu kont: %1$s</string>
     <string name="desc_delete_many">Ze wszystkich kont (%1$d): %2$s</string>
-    <string name="desc_read_only_entry_stays">Wpis z konta tylko do odczytu zostaje (%1$s).</string>
-    <string name="desc_read_only_entries_stay">Wpisy z kont tylko do odczytu zostają.</string>
+    <string name="desc_read_only_entry_stays">Wpis z konta tylko do odczytu pozostanie (%1$s).</string>
+    <string name="desc_read_only_entries_stay">Wpisy z kont tylko do odczytu pozostaną.</string>
     <string name="msg_contact_deleted">Usunięto kontakt: %1$s</string>
     <string name="msg_contact_deleted_accounts">Usunięto kontakt: %1$s (konta: %2$d)</string>
     <string name="msg_contacts_deleted">Usunięto kontakty: %1$d</string>
     <string name="button_undo">Cofnij</string>
     <string name="title_delete_contacts">Usunąć kontakty (%1$d)?</string>
-    <string name="msg_delete_contacts">Kontakty znikną ze wszystkich kont, na których są zapisane.</string>
+    <string name="msg_delete_contacts">Kontakty zostaną usunięte ze wszystkich kont, na których są zapisane.</string>
     <string name="msg_delete_skips_read_only">Kontakty tylko do odczytu (%1$d) zostaną pominięte.</string>
     <string name="button_delete">Usuń</string>
-    <string name="title_selected">Zaznaczone: %1$d</string>
-    <string name="content_description_close_selection">Zamknij zaznaczanie</string>
+    <string name="title_selected">Zaznaczono: %1$d</string>
+    <string name="content_description_close_selection">Zakończ zaznaczanie</string>
     <string name="content_description_select_all">Zaznacz wszystkie</string>
     <string name="tooltip_share">Udostępnij</string>
     <string name="msg_starred">Dodano do ulubionych: %1$d</string>
@@ -138,12 +138,12 @@
     <string name="msg_account_hidden">Konto jest ukryte na liście (%1$s).</string>
     <string name="menu_move_to_account">Przenieś na konto</string>
     <string name="desc_move_to_account">Kopiuje kontakty na konto i usuwa je z telefonu</string>
-    <string name="msg_local_only_copy">Kontakty na tym telefonie nie są nigdzie synchronizowane. Jedyną kopią poza telefonem jest eksport do pliku vCard.</string>
-    <string name="menu_move_account">Przenieś do innego konta</string>
+    <string name="msg_local_only_copy">Kontakty zapisane w tym telefonie nie są nigdzie synchronizowane. Jedynym sposobem na zachowanie kopii poza telefonem jest eksport do pliku vCard.</string>
+    <string name="menu_move_account">Przenieś na inne konto</string>
     <string name="title_move_contacts">Przenieść kontakty (%1$d)?</string>
     <string name="title_move_contact">Przenieść kontakt (%1$s)?</string>
-    <string name="msg_move_contacts">Każdy kontakt zostanie skopiowany na wybrane konto i usunięty z telefonu. Na serwer trafi przy najbliższej synchronizacji.</string>
-    <string name="msg_move_contact">Kontakt zostanie skopiowany na wybrane konto i usunięty z obecnego. Na serwer trafi przy najbliższej synchronizacji.</string>
+    <string name="msg_move_contacts">Każdy kontakt zostanie skopiowany na wybrane konto i usunięty z telefonu. Na serwer trafi przy następnej synchronizacji.</string>
+    <string name="msg_move_contact">Kontakt zostanie skopiowany na wybrane konto i usunięty z obecnego. Na serwer trafi przy następnej synchronizacji.</string>
     <string name="button_move">Przenieś</string>
     <string name="label_moving">Przenoszenie…</string>
     <string name="msg_contacts_moved">Przeniesiono kontakty: %1$d (%2$s)</string>
@@ -155,9 +155,9 @@
     <string name="desc_duplicates_intro">Scalenie w jeden kontakt zostawia jeden wpis i usuwa pozostałe. Samo połączenie niczego nie usuwa, a kontakt można później rozdzielić.</string>
     <string name="label_reason_number">Ten sam numer</string>
     <string name="label_reason_email">Ten sam e-mail</string>
-    <string name="label_reason_name_email">Ta sama nazwa i e-mail</string>
+    <string name="label_reason_name_email">Ta sama nazwa i ten sam e-mail</string>
     <string name="button_merge_all">Połącz wszystkie</string>
-    <string name="msg_no_duplicates">Brak sugestii duplikatów.</string>
+    <string name="msg_no_duplicates">Nie znaleziono duplikatów.</string>
     <string name="title_same_person">Ta sama osoba?</string>
     <string name="label_after_merging">Po połączeniu</string>
     <string name="label_tag_left">Lewy</string>
@@ -173,7 +173,7 @@
     <string name="desc_duplicates_count">Sugestie: %1$d</string>
     <string name="desc_no_suggestions">Brak sugestii</string>
     <string name="title_possible_duplicates">Możliwe duplikaty: %1$d</string>
-    <string name="desc_possible_duplicates">Te same osoby na różnych kontach. Przejrzyj je przed połączeniem.</string>
+    <string name="desc_possible_duplicates">Te same osoby mogą być na różnych kontach. Przejrzyj je przed połączeniem.</string>
     <string name="button_review">Przejrzyj</string>
     <string name="tooltip_merge">Połącz</string>
     <string name="label_more_avatars">+%1$d</string>
@@ -181,55 +181,55 @@
     <string name="menu_separate">Rozdziel</string>
     <string name="desc_entries">Wpisy: %1$d</string>
     <string name="title_separate">Rozdzielić kontakt?</string>
-    <string name="msg_separate">Ten kontakt łączy kilka wpisów (%1$d: %2$s). Po rozdzieleniu każdy wpis będzie osobnym kontaktem.</string>
+    <string name="msg_separate">Ten kontakt łączy kilka wpisów (%1$d: %2$s). Po rozdzieleniu każdy wpis stanie się osobnym kontaktem.</string>
     <string name="button_separate">Rozdziel</string>
     <string name="msg_separated">Rozdzielono kontakt: %1$s</string>
     <string name="error_join_failed">Nie udało się połączyć kontaktów.</string>
     <string name="label_merge_permanent">Scal w jeden</string>
     <string name="label_merge_join">Tylko połącz</string>
-    <string name="desc_merge_permanent">Zostaje jeden wpis z wartościami wybranymi poniżej. Pozostałe wpisy zostaną usunięte.</string>
-    <string name="desc_merge_join">Wpisy zostają na swoich kontach i pokazują się jako jeden kontakt. Można je później rozdzielić.</string>
-    <string name="label_entry_stays">Zostaje wpis</string>
+    <string name="desc_merge_permanent">Pozostanie jeden wpis z wartościami wybranymi poniżej. Pozostałe wpisy zostaną usunięte.</string>
+    <string name="desc_merge_join">Wpisy pozostają na swoich kontach i są pokazywane jako jeden kontakt. Można je później rozdzielić.</string>
+    <string name="label_entry_stays">Wpis, który pozostanie</string>
     <string name="msg_entry_deleted">Wpis z konta %1$s zostanie usunięty.</string>
     <string name="msg_entry_joined">Wpis z konta %1$s jest tylko do odczytu. Zostanie tylko połączony.</string>
     <string name="label_merge_name">Imię i nazwisko</string>
     <string name="label_merge_photo">Zdjęcie</string>
     <string name="button_merge_permanent">Scal w jeden</string>
     <string name="title_merge_permanent">Scalić kontakty?</string>
-    <string name="msg_merge_permanent">Wpisy z tych kont zostaną usunięte (%1$s). Tego nie można cofnąć.</string>
-    <string name="msg_merge_permanent_none">Kontakty staną się jednym. Tego nie można cofnąć.</string>
+    <string name="msg_merge_permanent">Wpisy z tych kont zostaną usunięte (%1$s). Tej operacji nie można cofnąć.</string>
+    <string name="msg_merge_permanent_none">Kontakty zostaną scalone w jeden. Tej operacji nie można cofnąć.</string>
     <string name="msg_merged_permanent">Scalono kontakty w jeden: %1$s</string>
 
     <!-- Import and export -->
-    <string name="title_import_contact">Importuj kontakt</string>
-    <string name="title_import_contacts">Importuj kontakty</string>
+    <string name="title_import_contact">Import kontaktu</string>
+    <string name="title_import_contacts">Import kontaktów</string>
     <string name="label_import_to_account">Importuj na konto</string>
     <string name="label_skip_existing">Pomiń istniejące kontakty</string>
-    <string name="desc_skip_existing">Ta sama nazwa i numer lub e-mail</string>
+    <string name="desc_skip_existing">Ta sama nazwa oraz numer lub e-mail</string>
     <string name="label_import_count">Kontakty w pliku: %1$d, wybrane: %2$d</string>
-    <string name="label_already_exists_suffix">(już jest)</string>
-    <string name="msg_contact_exists">Ten kontakt już jest (%1$s, %2$s).</string>
+    <string name="label_already_exists_suffix">(już istnieje)</string>
+    <string name="msg_contact_exists">Ten kontakt już istnieje (%1$s, %2$s).</string>
     <string name="label_import_anyway">Importuj mimo to</string>
     <string name="button_import">Importuj</string>
     <string name="label_importing">Importowanie…</string>
     <string name="label_import_progress">Zaimportowano: %1$s z %2$s</string>
     <string name="msg_fields_skipped">Niektóre pola z tego pliku zostaną pominięte (%1$s, kontakty: %2$d). Aplikacja ich nie obsługuje.</string>
-    <string name="error_unreadable_file">Nie można odczytać tego pliku. To nie jest plik vCard albo jest uszkodzony.</string>
+    <string name="error_unreadable_file">Nie można odczytać tego pliku. To nie jest poprawny plik vCard albo plik jest uszkodzony.</string>
     <string name="msg_file_no_contacts">W tym pliku nie ma kontaktów.</string>
     <string name="button_choose_other_file">Wybierz inny plik</string>
     <string name="msg_imported">Zaimportowano kontakty: %1$s (%2$s)</string>
-    <string name="msg_imported_skipped">Zaimportowano kontakty: %1$s (%2$s). Pominięte: %3$s.</string>
+    <string name="msg_imported_skipped">Zaimportowano kontakty: %1$s (%2$s). Pominięto: %3$s.</string>
     <string name="error_import_failed">Nie udało się zaimportować kontaktów (zaimportowano: %1$s).</string>
     <string name="button_undo_import">Cofnij import</string>
     <string name="title_export_all">Eksport wszystkich kontaktów</string>
-    <string name="desc_export_intro">Wszystkie kontakty z wybranych kont w jednym pliku vCard. To jedyna kopia kontaktów poza kontami i telefonem.</string>
+    <string name="desc_export_intro">Wszystkie kontakty z wybranych kont w jednym pliku vCard. To jedyny sposób na zachowanie kopii kontaktów poza kontami i telefonem.</string>
     <string name="label_group_file">Plik</string>
     <string name="label_with_photos">Ze zdjęciami</string>
     <string name="desc_with_photos">Plik będzie większy (około %1$s)</string>
     <string name="label_size_mb">%1$d MB</string>
     <string name="label_size_under_1mb">poniżej 1 MB</string>
     <string name="label_hidden_in_list_suffix">%1$s, ukryte na liście</string>
-    <string name="label_export_count">Kontakty w pliku: %1$s. Połączone liczą się raz.</string>
+    <string name="label_export_count">Kontakty w pliku: %1$s. Połączone kontakty są liczone raz.</string>
     <string name="button_save_as">Zapisz jako…</string>
     <string name="label_exporting">Eksportowanie…</string>
     <string name="label_export_progress">Wyeksportowano: %1$s z %2$s</string>
@@ -242,7 +242,7 @@
 
     <!-- Later list (18 Nov 2026) -->
     <string name="label_avatar_colors">Kolory awatarów</string>
-    <string name="label_avatar_colors_many">Wiele</string>
+    <string name="label_avatar_colors_many">Różne</string>
     <string name="label_avatar_colors_theme">Tylko z motywu</string>
     <string name="menu_is_default">Domyślny</string>
 
@@ -261,7 +261,7 @@
     <string name="msg_no_results">Brak wyników (%1$s).</string>
     <string name="desc_search_scope">Wyszukiwanie obejmuje imiona i nazwiska, numery, e-maile, firmy i notatki na pokazywanych kontach.</string>
     <string name="desc_hidden_not_searched">Ukryte konta nie są przeszukiwane.</string>
-    <string name="button_search_all">Szukaj we wszystkich</string>
+    <string name="button_search_all">Szukaj na wszystkich kontach</string>
 
     <!-- Contact page -->
     <string name="tooltip_call">Zadzwoń</string>
@@ -269,19 +269,19 @@
     <string name="tooltip_email">E-mail</string>
     <string name="tooltip_map">Mapa</string>
     <string name="label_default_suffix">%1$s, domyślny</string>
-    <string name="label_website">Strona</string>
-    <string name="msg_no_maps_app">Brak aplikacji map. Adres skopiowano.</string>
+    <string name="label_website">Strona internetowa</string>
+    <string name="msg_no_maps_app">Brak aplikacji z mapami. Skopiowano adres.</string>
     <string name="title_sources">Pochodzenie</string>
     <string name="label_local_contacts">Kontakty lokalne</string>
     <string name="label_read_only_suffix">%1$s, tylko do odczytu</string>
-    <string name="msg_read_only_contact">Ten kontakt pochodzi z konta tylko do odczytu (%1$s). Zmienić lub usunąć można go tylko w aplikacji %2$s.</string>
+    <string name="msg_read_only_contact">Ten kontakt pochodzi z konta tylko do odczytu (%1$s). Można go zmienić lub usunąć tylko w aplikacji %2$s.</string>
     <string name="title_which_number">Który numer?</string>
     <string name="title_which_address">Który adres?</string>
     <string name="label_call_to">Zadzwoń: %1$s</string>
     <string name="label_message_to">Wiadomość: %1$s</string>
     <string name="label_email_to">E-mail: %1$s</string>
     <string name="label_remember_default">Zapamiętaj jako domyślny</string>
-    <string name="msg_contact_gone">Tego kontaktu już nie ma.</string>
+    <string name="msg_contact_gone">Ten kontakt już nie istnieje.</string>
     <string name="button_back_to_list">Wróć do listy</string>
     <string name="content_description_photo">Zdjęcie: %1$s</string>
     <string name="error_star_failed">Nie udało się zmienić ulubionych.</string>
@@ -289,28 +289,28 @@
 
     <!-- Types of values -->
     <string name="label_type_phone_mobile">Komórka</string>
-    <string name="label_type_phone_home">Dom</string>
-    <string name="label_type_phone_work">Praca</string>
-    <string name="label_type_phone_work_fax">Faks w pracy</string>
-    <string name="label_type_phone_home_fax">Faks w domu</string>
+    <string name="label_type_phone_home">Domowy</string>
+    <string name="label_type_phone_work">Służbowy</string>
+    <string name="label_type_phone_work_fax">Faks służbowy</string>
+    <string name="label_type_phone_home_fax">Faks domowy</string>
     <string name="label_type_phone_pager">Pager</string>
     <string name="label_type_phone_main">Główny</string>
     <string name="label_type_phone_other">Inny</string>
     <string name="label_type_email_personal">Prywatny</string>
-    <string name="label_type_email_work">Praca</string>
+    <string name="label_type_email_work">Służbowy</string>
     <string name="label_type_email_other">Inny</string>
-    <string name="label_type_address_home">Dom</string>
-    <string name="label_type_address_work">Praca</string>
+    <string name="label_type_address_home">Domowy</string>
+    <string name="label_type_address_work">Służbowy</string>
     <string name="label_type_address_other">Inny</string>
-    <string name="label_type_website_homepage">Strona</string>
+    <string name="label_type_website_homepage">Strona główna</string>
     <string name="label_type_website_blog">Blog</string>
-    <string name="label_type_website_work">Praca</string>
+    <string name="label_type_website_work">Służbowa</string>
     <string name="label_type_website_other">Inna</string>
     <string name="label_type_date_birthday">Urodziny</string>
     <string name="label_type_date_anniversary">Rocznica</string>
     <string name="label_type_date_other">Inna</string>
-    <string name="label_type_sip_home">Dom</string>
-    <string name="label_type_sip_work">Praca</string>
+    <string name="label_type_sip_home">Domowy</string>
+    <string name="label_type_sip_work">Służbowy</string>
     <string name="label_type_sip_other">Inny</string>
     <string name="label_type_relation_spouse">Małżonek</string>
     <string name="label_type_relation_partner">Partner</string>
@@ -331,24 +331,24 @@
     <string name="label_step">Krok %1$d z %2$d</string>
     <string name="msg_wizard_access">Aplikacja pokazuje i zmienia kontakty zapisane w systemie. Potrzebuje do tego dostępu do kontaktów.</string>
     <string name="label_no_internet">Bez Internetu</string>
-    <string name="desc_no_internet">Aplikacja nie łączy się z siecią.</string>
+    <string name="desc_no_internet">Aplikacja nigdy nie łączy się z Internetem.</string>
     <string name="label_sync_by_others">Konta synchronizują inne aplikacje</string>
-    <string name="desc_sync_by_others">Na przykład DAVx⁵ z Nextcloud.</string>
+    <string name="desc_sync_by_others">Na przykład DAVx⁵ z Nextcloudem.</string>
     <string name="button_not_now">Nie teraz</string>
-    <string name="msg_wizard_backup">Kopia zawiera ustawienia aplikacji. Kontakty są w systemie i na kontach, więc nie ma ich w kopii.</string>
+    <string name="msg_wizard_backup">Kopia obejmuje ustawienia aplikacji. Nie zawiera kontaktów, bo przechowuje je system i konta.</string>
     <string name="button_next">Dalej</string>
-    <string name="label_start_fresh">Zacznij od nowa</string>
+    <string name="label_start_fresh">Zacznij od zera</string>
     <string name="desc_start_fresh">Ustawienia domyślne.</string>
     <string name="desc_restore_backup_wizard">Wybierz plik JSON zapisany w Ustawieniach.</string>
-    <string name="msg_wizard_accounts">Kontakty z tych kont są na liście. Można to zmienić później w Ustawieniach.</string>
-    <string name="msg_wizard_no_account">Nie ma jeszcze żadnego konta. Konta dodaje się w aplikacjach, które je synchronizują, na przykład DAVx⁵. Kontakty lokalne działają bez konta.</string>
+    <string name="msg_wizard_accounts">Kontakty z tych kont są pokazywane na liście. Można to później zmienić w Ustawieniach.</string>
+    <string name="msg_wizard_no_account">Nie ma jeszcze żadnego konta. Konta można dodać w aplikacjach, które je synchronizują, na przykład w DAVx⁵. Kontakty lokalne działają bez konta.</string>
     <string name="desc_new_contacts_here">Nowe kontakty zostaną zapisane tutaj.</string>
     <string name="msg_wizard_export_hint">Kontakty lokalne warto co jakiś czas eksportować do pliku vCard (Ustawienia › Eksport wszystkich kontaktów).</string>
     <string name="button_done">Gotowe</string>
 
     <!-- Accounts -->
     <string name="title_accounts">Konta</string>
-    <string name="label_this_phone">Na tym telefonie</string>
+    <string name="label_this_phone">W tym telefonie</string>
     <string name="label_account_count">%1$s, kontakty: %2$s</string>
     <string name="label_account_empty">%1$s, brak kontaktów</string>
     <string name="label_local_count">Kontakty lokalne: %1$s</string>
@@ -360,7 +360,7 @@
     <string name="label_sort_by">Sortuj według</string>
     <string name="label_sort_first">Imienia</string>
     <string name="label_sort_last">Nazwiska</string>
-    <string name="label_show_names">Pokazuj nazwy</string>
+    <string name="label_show_names">Format nazw</string>
     <string name="label_name_first_last">Jan Kowalski</string>
     <string name="label_name_last_first">Kowalski, Jan</string>
     <string name="label_company_line">Firma w drugim wierszu</string>
@@ -369,8 +369,8 @@
     <!-- Settings › Backup -->
     <string name="title_backup">Kopia zapasowa</string>
     <string name="desc_backup_row">Ustawienia w jednym pliku</string>
-    <string name="msg_backup_contents">Kopia zawiera ustawienia aplikacji i wybór kont pokazywanych na liście.</string>
-    <string name="msg_backup_no_contacts">Kontaktów nie ma w kopii. Są w systemie i na kontach, a poza nimi chroni je eksport do pliku vCard.</string>
+    <string name="msg_backup_contents">Kopia obejmuje ustawienia aplikacji i wybór kont pokazywanych na liście.</string>
+    <string name="msg_backup_no_contacts">Kopia nie zawiera kontaktów. Przechowuje je system i konta, a kopię poza nimi można zachować przez eksport do pliku vCard.</string>
     <string name="label_create_backup">Utwórz kopię</string>
     <string name="label_last_backup">Ostatnia kopia: %s</string>
     <string name="label_no_backup">Nie utworzono jeszcze kopii</string>
@@ -400,7 +400,7 @@
 
     <!-- Settings › Reset -->
     <string name="title_settings_reset">Resetowanie</string>
-    <string name="desc_settings_reset_row">Kontakty zostają</string>
+    <string name="desc_settings_reset_row">Kontakty pozostają bez zmian</string>
     <string name="desc_settings_reset">Wszystkie ustawienia wrócą do domyślnych, wszystkie konta będą znów pokazywane, a język będzie zgodny z systemem. Kontakty pozostaną bez zmian.</string>
     <string name="button_restore_defaults">Przywróć ustawienia domyślne</string>
     <string name="title_confirm_restore_defaults">Przywrócić ustawienia domyślne?</string>

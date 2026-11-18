@@ -14,11 +14,11 @@
     <!-- Contact list -->
     <string name="title_contacts">Contacts</string>
     <string name="msg_no_permission">Without access to contacts there is nothing to show here.</string>
-    <string name="desc_no_permission">Contacts stay in the system and in the accounts. The app only shows and changes them.</string>
+    <string name="desc_no_permission">Contacts are kept by the system and the accounts. The app only shows and changes them.</string>
     <string name="button_allow_access">Allow access</string>
     <string name="button_open_app_settings">Open app settings</string>
-    <string name="msg_no_contacts">There are no contacts here yet.</string>
-    <string name="desc_no_contacts">Accounts are added in the apps that sync them, such as DAVx⁵. Without an account, contacts stay on this phone.</string>
+    <string name="msg_no_contacts">No contacts yet.</string>
+    <string name="desc_no_contacts">Accounts can be added in the apps that sync them, such as DAVx⁵. Without an account, contacts are saved only on this phone.</string>
     <string name="msg_all_hidden">All accounts are hidden.</string>
     <string name="desc_all_hidden">Contacts in the system: %1$s. No account is shown in the list.</string>
 
@@ -58,15 +58,15 @@
     <string name="button_add_address">Add address</string>
     <string name="button_add_website">Add website</string>
     <string name="button_add_date">Add date</string>
-    <string name="button_add_relation">Add relation</string>
-    <string name="button_add_im">Add messaging</string>
+    <string name="button_add_relation">Add relationship</string>
+    <string name="button_add_im">Add messaging account</string>
     <string name="button_add_sip">Add SIP address</string>
     <string name="button_more_fields">More fields</string>
     <string name="menu_field_address">Address</string>
-    <string name="menu_field_company">Company and title</string>
+    <string name="menu_field_company">Company and job title</string>
     <string name="menu_field_website">Website</string>
     <string name="menu_field_date">Date</string>
-    <string name="menu_field_relation">Relation</string>
+    <string name="menu_field_relation">Relationship</string>
     <string name="menu_field_nickname">Nickname</string>
     <string name="menu_field_im">Messaging</string>
     <string name="menu_field_sip">SIP address</string>
@@ -77,18 +77,18 @@
     <string name="label_region">Region</string>
     <string name="label_country">Country</string>
     <string name="label_company">Company</string>
-    <string name="label_job_title">Title</string>
+    <string name="label_job_title">Job title</string>
     <string name="label_custom_label">Custom label…</string>
     <string name="title_custom_label">Custom label</string>
     <string name="menu_set_default">Set as default</string>
     <string name="label_no_year">No year</string>
-    <string name="msg_joined_editing">This contact is joined from several entries (%1$d). Each value is saved to its own account. New fields go to the account: %2$s.</string>
+    <string name="msg_joined_editing">This contact is joined from several entries (%1$d). Each value is saved to the account it came from. New fields will be saved to the account: %2$s.</string>
     <string name="label_read_only_value">%1$s, read-only</string>
-    <string name="msg_changed_while_editing">This contact changed while being edited, probably by a sync. Saving will replace those changes.</string>
+    <string name="msg_changed_while_editing">This contact was changed while you were editing it, probably by a sync. Saving will replace those changes.</string>
     <string name="button_reload">Reload</string>
-    <string name="msg_deleted_while_editing">This contact was deleted while being edited. Saving will create it again.</string>
+    <string name="msg_deleted_while_editing">This contact was deleted while you were editing it. Saving will create it again.</string>
     <string name="title_discard_changes">Discard changes?</string>
-    <string name="msg_discard_changes">The changes to this contact weren’t saved.</string>
+    <string name="msg_discard_changes">The changes to this contact haven’t been saved.</string>
     <string name="button_keep_editing">Keep editing</string>
     <string name="button_discard">Discard</string>
     <string name="content_description_remove_value">Remove</string>
@@ -113,14 +113,14 @@
     <string name="menu_delete">Delete</string>
     <string name="desc_delete_two">From both accounts: %1$s</string>
     <string name="desc_delete_many">From all accounts (%1$d): %2$s</string>
-    <string name="desc_read_only_entry_stays">The entry from the read-only account stays (%1$s).</string>
-    <string name="desc_read_only_entries_stay">Entries from read-only accounts stay.</string>
+    <string name="desc_read_only_entry_stays">The entry from the read-only account will stay (%1$s).</string>
+    <string name="desc_read_only_entries_stay">Entries from read-only accounts will stay.</string>
     <string name="msg_contact_deleted">Contact deleted: %1$s</string>
     <string name="msg_contact_deleted_accounts">Contact deleted: %1$s (accounts: %2$d)</string>
     <string name="msg_contacts_deleted">Contacts deleted: %1$d</string>
     <string name="button_undo">Undo</string>
     <string name="title_delete_contacts">Delete contacts (%1$d)?</string>
-    <string name="msg_delete_contacts">The contacts will disappear from every account they are saved in.</string>
+    <string name="msg_delete_contacts">The contacts will be deleted from every account they are saved in.</string>
     <string name="msg_delete_skips_read_only">Read-only contacts (%1$d) will be skipped.</string>
     <string name="button_delete">Delete</string>
     <string name="title_selected">Selected: %1$d</string>
@@ -142,12 +142,12 @@
     <string name="msg_account_hidden">The account is hidden in the list (%1$s).</string>
     <string name="menu_move_to_account">Move to an account</string>
     <string name="desc_move_to_account">Copies the contacts to an account and deletes them from the phone</string>
-    <string name="msg_local_only_copy">Contacts on this phone aren’t synced anywhere. The only copy outside the phone is an export to a vCard file.</string>
+    <string name="msg_local_only_copy">Contacts on this phone aren’t synced anywhere. Exporting them to a vCard file is the only way to keep a copy outside the phone.</string>
     <string name="menu_move_account">Move to another account</string>
     <string name="title_move_contacts">Move contacts (%1$d)?</string>
     <string name="title_move_contact">Move contact (%1$s)?</string>
-    <string name="msg_move_contacts">Each contact will be copied to the chosen account and deleted from the phone. It reaches the server with the next sync.</string>
-    <string name="msg_move_contact">The contact will be copied to the chosen account and deleted from the current one. It reaches the server with the next sync.</string>
+    <string name="msg_move_contacts">Each contact will be copied to the chosen account and deleted from the phone. It will reach the server at the next sync.</string>
+    <string name="msg_move_contact">The contact will be copied to the chosen account and deleted from the current one. It will reach the server at the next sync.</string>
     <string name="button_move">Move</string>
     <string name="label_moving">Moving…</string>
     <string name="msg_contacts_moved">Contacts moved: %1$d (%2$s)</string>
@@ -156,44 +156,44 @@
 
     <!-- Duplicates -->
     <string name="title_duplicates">Duplicates</string>
-    <string name="desc_duplicates_intro">Merging into one contact keeps one entry and deletes the others. Only joining deletes nothing, and the contact can be separated later.</string>
+    <string name="desc_duplicates_intro">Merging into one contact keeps one entry and deletes the others. Joining deletes nothing, and the contact can be separated later.</string>
     <string name="label_reason_number">Same number</string>
     <string name="label_reason_email">Same email</string>
     <string name="label_reason_name_email">Same name and email</string>
-    <string name="button_merge_all">Merge all</string>
-    <string name="msg_no_duplicates">There are no duplicate suggestions.</string>
+    <string name="button_merge_all">Join all</string>
+    <string name="msg_no_duplicates">No duplicates found.</string>
     <string name="title_same_person">Same person?</string>
-    <string name="label_after_merging">After merging</string>
+    <string name="label_after_merging">After joining</string>
     <string name="label_tag_left">Left</string>
     <string name="label_tag_right">Right</string>
     <string name="label_tag_both">Both</string>
     <string name="label_tag_all">All</string>
-    <string name="button_merge">Merge</string>
+    <string name="button_merge">Join</string>
     <string name="button_not_same_person">Not the same person</string>
-    <string name="msg_merged">Contacts merged: %1$s</string>
+    <string name="msg_merged">Contacts joined: %1$s</string>
     <string name="msg_not_suggested">This pair won’t be suggested again.</string>
-    <string name="msg_duplicates_merged">Duplicates merged: %1$d</string>
+    <string name="msg_duplicates_merged">Duplicates joined: %1$d</string>
     <string name="label_join_with">Join with: %1$s</string>
     <string name="desc_duplicates_count">Suggestions: %1$d</string>
     <string name="desc_no_suggestions">No suggestions</string>
     <string name="title_possible_duplicates">Possible duplicates: %1$d</string>
-    <string name="desc_possible_duplicates">The same people in different accounts. Review them before merging.</string>
+    <string name="desc_possible_duplicates">The same people may be in different accounts. Review them before joining.</string>
     <string name="button_review">Review</string>
-    <string name="tooltip_merge">Merge</string>
+    <string name="tooltip_merge">Join</string>
     <string name="label_more_avatars">+%1$d</string>
     <string name="menu_join">Join with another contact</string>
     <string name="menu_separate">Separate</string>
     <string name="desc_entries">Entries: %1$d</string>
     <string name="title_separate">Separate contact?</string>
-    <string name="msg_separate">This contact joins several entries (%1$d: %2$s). After separating, each entry becomes a contact of its own.</string>
+    <string name="msg_separate">This contact joins several entries (%1$d: %2$s). After separating, each entry will become a separate contact.</string>
     <string name="button_separate">Separate</string>
     <string name="msg_separated">Contact separated: %1$s</string>
     <string name="error_join_failed">The contacts couldn’t be joined.</string>
     <string name="label_merge_permanent">Merge into one</string>
     <string name="label_merge_join">Only join</string>
-    <string name="desc_merge_permanent">One entry stays, with the values chosen below. The other entries will be deleted.</string>
-    <string name="desc_merge_join">The entries stay in their accounts and show as one contact. They can be separated later.</string>
-    <string name="label_entry_stays">Entry that stays</string>
+    <string name="desc_merge_permanent">One entry will stay, with the values chosen below. The other entries will be deleted.</string>
+    <string name="desc_merge_join">The entries stay in their accounts and are shown as one contact. They can be separated later.</string>
+    <string name="label_entry_stays">Entry to keep</string>
     <string name="msg_entry_deleted">The entry in %1$s will be deleted.</string>
     <string name="msg_entry_joined">The entry in %1$s is read-only. It will only be joined.</string>
     <string name="label_merge_name">Name</string>
@@ -201,7 +201,7 @@
     <string name="button_merge_permanent">Merge into one</string>
     <string name="title_merge_permanent">Merge contacts?</string>
     <string name="msg_merge_permanent">The entries in these accounts will be deleted (%1$s). This can’t be undone.</string>
-    <string name="msg_merge_permanent_none">The contacts will become one. This can’t be undone.</string>
+    <string name="msg_merge_permanent_none">The contacts will be merged into one. This can’t be undone.</string>
     <string name="msg_merged_permanent">Contacts merged into one: %1$s</string>
 
     <!-- Import and export -->
@@ -218,7 +218,7 @@
     <string name="label_importing">Importing…</string>
     <string name="label_import_progress">Imported: %1$s of %2$s</string>
     <string name="msg_fields_skipped">Some fields in this file will be left out (%1$s, contacts: %2$d). The app doesn’t support them.</string>
-    <string name="error_unreadable_file">This file can’t be read. It isn’t a vCard file, or it is damaged.</string>
+    <string name="error_unreadable_file">This file can’t be read. It isn’t a valid vCard file, or it is damaged.</string>
     <string name="msg_file_no_contacts">There are no contacts in this file.</string>
     <string name="button_choose_other_file">Choose another file</string>
     <string name="msg_imported">Contacts imported: %1$s (%2$s)</string>
@@ -226,14 +226,14 @@
     <string name="error_import_failed">Contacts couldn’t be imported (imported: %1$s).</string>
     <string name="button_undo_import">Undo import</string>
     <string name="title_export_all">Export all contacts</string>
-    <string name="desc_export_intro">All contacts from the chosen accounts in one vCard file. It is the only copy of the contacts outside the accounts and the phone.</string>
+    <string name="desc_export_intro">All contacts from the chosen accounts in one vCard file. It is the only way to keep a copy of the contacts outside the accounts and the phone.</string>
     <string name="label_group_file">File</string>
     <string name="label_with_photos">With photos</string>
     <string name="desc_with_photos">The file will be larger (about %1$s)</string>
     <string name="label_size_mb">%1$d MB</string>
     <string name="label_size_under_1mb">under 1 MB</string>
     <string name="label_hidden_in_list_suffix">%1$s, hidden in the list</string>
-    <string name="label_export_count">Contacts in the file: %1$s. Joined ones count once.</string>
+    <string name="label_export_count">Contacts in the file: %1$s. Joined contacts count once.</string>
     <string name="button_save_as">Save as…</string>
     <string name="label_exporting">Exporting…</string>
     <string name="label_export_progress">Exported: %1$s of %2$s</string>
@@ -246,7 +246,7 @@
 
     <!-- Later list (18 Nov 2026) -->
     <string name="label_avatar_colors">Avatar colors</string>
-    <string name="label_avatar_colors_many">Many</string>
+    <string name="label_avatar_colors_many">Varied</string>
     <string name="label_avatar_colors_theme">Theme only</string>
     <string name="menu_is_default">Default</string>
 
@@ -263,9 +263,9 @@
     <string name="label_match_note">Note: %1$s</string>
     <string name="label_match_phone">%1$s: %2$s</string>
     <string name="msg_no_results">No results (%1$s).</string>
-    <string name="desc_search_scope">Search covers names, numbers, emails, companies and notes in the shown accounts.</string>
+    <string name="desc_search_scope">Search covers names, numbers, emails, companies and notes in the accounts shown in the list.</string>
     <string name="desc_hidden_not_searched">Hidden accounts aren’t searched.</string>
-    <string name="button_search_all">Search all</string>
+    <string name="button_search_all">Search all accounts</string>
 
     <!-- Contact page -->
     <string name="tooltip_call">Call</string>
@@ -274,7 +274,7 @@
     <string name="tooltip_map">Map</string>
     <string name="label_default_suffix">%1$s, default</string>
     <string name="label_website">Website</string>
-    <string name="msg_no_maps_app">No maps app. The address was copied.</string>
+    <string name="msg_no_maps_app">No maps app found. The address was copied.</string>
     <string name="title_sources">Sources</string>
     <string name="label_local_contacts">Local contacts</string>
     <string name="label_read_only_suffix">%1$s, read-only</string>
@@ -288,7 +288,7 @@
     <string name="msg_contact_gone">This contact no longer exists.</string>
     <string name="button_back_to_list">Back to the list</string>
     <string name="content_description_photo">Photo: %1$s</string>
-    <string name="error_star_failed">The favorite couldn’t be changed.</string>
+    <string name="error_star_failed">Favorites couldn’t be updated.</string>
     <string name="error_no_app">No app for this action (%1$s).</string>
 
     <!-- Types of values -->
@@ -306,7 +306,7 @@
     <string name="label_type_address_home">Home</string>
     <string name="label_type_address_work">Work</string>
     <string name="label_type_address_other">Other</string>
-    <string name="label_type_website_homepage">Website</string>
+    <string name="label_type_website_homepage">Homepage</string>
     <string name="label_type_website_blog">Blog</string>
     <string name="label_type_website_work">Work</string>
     <string name="label_type_website_other">Other</string>
@@ -333,19 +333,19 @@
 
     <!-- First run -->
     <string name="label_step">Step %1$d of %2$d</string>
-    <string name="msg_wizard_access">The app shows and changes the contacts saved in the system. It needs access to contacts for that.</string>
+    <string name="msg_wizard_access">The app shows and changes the contacts saved in the system. To do that, it needs access to contacts.</string>
     <string name="label_no_internet">No Internet</string>
-    <string name="desc_no_internet">The app doesn’t connect to the network.</string>
+    <string name="desc_no_internet">The app never connects to the Internet.</string>
     <string name="label_sync_by_others">Other apps sync the accounts</string>
     <string name="desc_sync_by_others">For example, DAVx⁵ with Nextcloud.</string>
     <string name="button_not_now">Not now</string>
-    <string name="msg_wizard_backup">The backup holds the app’s settings. Contacts are in the system and in the accounts, so they aren’t in it.</string>
+    <string name="msg_wizard_backup">The backup contains the app’s settings. It doesn’t include contacts, which are kept by the system and the accounts.</string>
     <string name="button_next">Next</string>
     <string name="label_start_fresh">Start fresh</string>
     <string name="desc_start_fresh">Default settings.</string>
     <string name="desc_restore_backup_wizard">Choose a JSON file saved in Settings.</string>
-    <string name="msg_wizard_accounts">Contacts from these accounts are in the list. This can be changed later in Settings.</string>
-    <string name="msg_wizard_no_account">There is no account yet. Accounts are added in the apps that sync them, such as DAVx⁵. Local contacts work without an account.</string>
+    <string name="msg_wizard_accounts">Contacts from these accounts are shown in the list. This can be changed later in Settings.</string>
+    <string name="msg_wizard_no_account">There is no account yet. Accounts can be added in the apps that sync them, such as DAVx⁵. Local contacts work without an account.</string>
     <string name="desc_new_contacts_here">New contacts will be saved here.</string>
     <string name="msg_wizard_export_hint">It’s worth exporting local contacts to a vCard file now and then (Settings › Export all contacts).</string>
     <string name="button_done">Done</string>
@@ -364,7 +364,7 @@
     <string name="label_sort_by">Sort by</string>
     <string name="label_sort_first">First name</string>
     <string name="label_sort_last">Last name</string>
-    <string name="label_show_names">Show names</string>
+    <string name="label_show_names">Name format</string>
     <string name="label_name_first_last">John Smith</string>
     <string name="label_name_last_first">Smith, John</string>
     <string name="label_company_line">Company on a second line</string>
@@ -373,8 +373,8 @@
     <!-- Settings › Backup -->
     <string name="title_backup">Backup</string>
     <string name="desc_backup_row">Settings in one file</string>
-    <string name="msg_backup_contents">The backup holds the app’s settings and which accounts are shown in the list.</string>
-    <string name="msg_backup_no_contacts">Contacts aren’t in the backup. They are in the system and in the accounts, and outside them the vCard export keeps them safe.</string>
+    <string name="msg_backup_contents">The backup contains the app’s settings and the choice of accounts shown in the list.</string>
+    <string name="msg_backup_no_contacts">The backup doesn’t include contacts. They are kept by the system and the accounts; to keep a copy elsewhere, export them to a vCard file.</string>
     <string name="label_create_backup">Create backup</string>
     <string name="label_last_backup">Last backup: %s</string>
     <string name="label_no_backup">No backup yet</string>
@@ -430,5 +430,5 @@
     <string name="desc_licenses">Open-source components used by Contacts</string>
     <string name="label_apache_license" translatable="false">Apache License 2.0</string>
     <string name="title_about_source">Source code</string>
-    <string name="msg_about_privacy">The app has no Internet access. Contacts are kept by the system and synced by the apps that handle the accounts.</string>
+    <string name="msg_about_privacy">The app has no access to the Internet. Contacts are kept by the system and synced by the apps that manage your accounts.</string>
 </resources>
