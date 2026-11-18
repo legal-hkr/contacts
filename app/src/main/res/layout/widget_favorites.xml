@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Favorites widget (SPEC §14.1, as Calendar's Agenda since the owner's word of 18 Nov 2026): no background of its own; the header pill "Favorites" on its own at the top, where two rows fit under it, then the rows of favorites, which the code adds (FavoritesGrid says how many). Every piece casts its own shadow, so nothing on the way clips: clipChildren off on every container, clipToPadding off where there is padding; 2 dp all round leave room for the shadows. Sizes are in dp, text too: the launcher's font scale would push the names out of their pills. -->
+<!-- The Favorites widget (SPEC §14.1, as Calendar's Agenda since the owner's word of 18 Nov 2026): no background of its own; the header pill "Favorites" on its own at the top, wherever a row fits under it, then the rows of favorites, which the code adds (FavoritesGrid says how many). Every piece casts its own shadow, so nothing on the way clips: clipChildren off on every container, clipToPadding off where there is padding; 2 dp all round leave room for the shadows. Sizes are in dp, text too: the launcher's font scale would push the names out of their pills. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"

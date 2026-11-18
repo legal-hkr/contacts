@@ -18,11 +18,11 @@ class FavoritesGridTest {
     }
 
     @Test
-    fun oneRowHasNoTitle() {
+    fun oneRowKeepsTheHeader() {
         val fit = FavoritesGrid.fit(250, 110)
         assertEquals(4, fit.columns)
         assertEquals(1, fit.rows)
-        assertFalse(fit.title)
+        assertTrue(fit.title)
         assertTrue(fit.labels)
         assertEquals(FavoritesGrid.StateLook.TEXT, FavoritesGrid.stateLook(fit))
     }

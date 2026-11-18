@@ -1,7 +1,7 @@
 package sh.hnet.contacts.model
 
 /**
- * How the Favorites widget lays out at the size the launcher gives it (SPEC §14.1, the owner's D4 of 18 Nov 2026): as many favorites as whole cells fit, never scrolling and never "more"; the header pill only where two rows fit under it; the smallest size is 2 × 1 (the owner, 18 Nov 2026; one column only where a launcher's two cells are narrower than two columns). Pieces without a background of their own, as Calendar's Agenda (the owner, the same day). All sizes in dp.
+ * How the Favorites widget lays out at the size the launcher gives it (SPEC §14.1, the owner's D4 of 18 Nov 2026): as many favorites as whole cells fit, never scrolling and never "more"; the header pill wherever a row fits under it (the owner, 18 Nov 2026: one row too); the smallest size is 2 × 1 (the owner, 18 Nov 2026; one column only where a launcher's two cells are narrower than two columns). Pieces without a background of their own, as Calendar's Agenda (the owner, the same day). All sizes in dp.
  */
 object FavoritesGrid {
     /** Room for the pieces' shadows at the sides and at the top and bottom. */
@@ -27,8 +27,9 @@ object FavoritesGrid {
     /**
      * @param avatar The avatar's size: 48, smaller only when even one cell's height doesn't fit
      * @param labels Whether the names fit under the avatars
+     * @param low Whether the widget is only one row high, without the header: the states show their sentence alone then
      */
-    data class Fit(val columns: Int, val rows: Int, val title: Boolean, val labels: Boolean, val avatar: Int) {
+    data class Fit(val columns: Int, val rows: Int, val title: Boolean, val labels: Boolean, val avatar: Int, val low: Boolean) {
         val count: Int get() = columns * rows
     }
 
@@ -38,16 +39,16 @@ object FavoritesGrid {
     fun fit(width: Int, height: Int): Fit {
         val inner = height - 2 * PADDING_END
         val columns = maxOf(1, (width - 2 * PADDING_SIDE) / COLUMN)
-        val titled = rows(inner - TITLE) >= 2
+        val titled = rows(inner - TITLE) >= 1
         val rows = maxOf(1, rows(if (titled) inner - TITLE else inner))
         val labels = inner >= CELL
         val avatar = if (labels) AVATAR else inner.coerceIn(SMALLEST_AVATAR, AVATAR)
-        return Fit(columns, rows, titled, labels, avatar)
+        return Fit(columns, rows, titled, labels, avatar, low = rows(inner) <= 1)
     }
 
     fun stateLook(fit: Fit): StateLook = when {
         fit.columns == 1 -> StateLook.ICON
-        fit.rows == 1 && !fit.title -> StateLook.TEXT
+        fit.low -> StateLook.TEXT
         else -> StateLook.FULL
     }
 
