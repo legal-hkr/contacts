@@ -2,6 +2,7 @@ package sh.hnet.contacts.model
 
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -55,5 +56,35 @@ class PhoneFormatTest {
     fun theListHasEveryCountryInTheAppsLanguage() {
         val countries = PhoneFormat.countries(Locale.forLanguageTag("pl"))
         assertTrue(countries.any { it.region == "PL" && it.code == 48 && it.name == "Polska" && it.flag == "🇵🇱" })
+    }
+
+    @Test
+    fun onlyTheNumberItselfGetsTheCode() {
+        // An extension, pauses, a second number after "/" and letters stay as they were
+        assertEquals("+48 600 123 456 ext. 12", PhoneFormat.withCountry("600 123 456 ext. 12", "PL"))
+        assertEquals("+48 600 123 456,,12", PhoneFormat.withCountry("600123456,,12", "PL"))
+        assertEquals("+48 22 123 45 67 / 68", PhoneFormat.withCountry("22 123 45 67 / 68", "PL"))
+        // "(0)" after a code isn't dialed with it
+        assertEquals("+44 20 7946 0958", PhoneFormat.withCountry("+44 (0) 20 7946 0958", "GB"))
+        assertEquals("600 123 456,,12", PhoneFormat.withoutCountry("+48 600123456,,12"))
+    }
+
+    @Test
+    fun aNumberWithAPartAfterASlashIsLeftAsTyped() {
+        assertEquals("+48 22 123 45 67 / 689" to 21, PhoneFormat.typed("+48 22 123 45 67 / 68", "+48 22 123 45 67 / 689", 21))
+    }
+
+    @Test
+    fun onlyABackspacedSeparatorTakesItsDigit() {
+        // The whole number pasted again without spaces keeps every digit
+        assertEquals("+48 600 123 456", PhoneFormat.typed("+48 600 123 456", "+48600123456", 12).first)
+        // One of two spaces deleted: nothing else goes
+        assertEquals("+48 600", PhoneFormat.typed("+48  600", "+48 600", 4).first)
+    }
+
+    @Test
+    fun aCodeOfNoCountryCanBeTakenOff() {
+        assertTrue(PhoneFormat.hasCode("+800 1234 5678"))
+        assertFalse(PhoneFormat.hasCode("112"))
     }
 }

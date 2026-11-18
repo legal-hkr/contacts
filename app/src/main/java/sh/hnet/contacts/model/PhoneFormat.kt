@@ -13,11 +13,15 @@ object PhoneFormat {
     /** A country of the list: its region code ("PL"), calling code (48), name in the app's language and flag. */
     data class Country(val region: String, val code: Int, val name: String, val flag: String)
 
-    /** Every country with a calling code, by name in [locale]'s order. */
-    fun countries(locale: Locale): List<Country> {
-        val collator = Collator.getInstance(locale)
-        return util.supportedRegions.map { country(it, locale) }.sortedWith(compareBy(collator) { it.name })
+    /** Every country with a calling code, by name in [locale]'s order; worked out once per language (245 names and a sort, read from the library's metadata). */
+    fun countries(locale: Locale): List<Country> = synchronized(listed) {
+        listed.getOrPut(locale) {
+            val collator = Collator.getInstance(locale)
+            util.supportedRegions.map { country(it, locale) }.sortedWith(compareBy(collator) { it.name })
+        }
     }
+
+    private val listed = HashMap<Locale, List<Country>>()
 
     fun country(region: String, locale: Locale): Country =
         Country(region, util.getCountryCodeForRegion(region), Locale.Builder().setRegion(region).build().getDisplayCountry(locale).ifEmpty { region }, flag(region))
@@ -37,21 +41,37 @@ object PhoneFormat {
         return whole?.takeIf { it in regions } ?: hint?.takeIf { it in regions } ?: util.getRegionCodeForCountryCode(code)
     }
 
+    /** Whether the number starts with a calling code, a country's or not (+800): "No country code" can take it off. */
+    fun hasCode(text: String): Boolean = callingCode(head(text)) != null
+
     /**
-     * [text] with [region]'s calling code at its start, formatted: a code already there is replaced, and a national number loses its trunk prefix where the country has one (UK 07… → +44 7…, Germany 0151… → +49 151…).
+     * [text] with [region]'s calling code at its start, formatted: a code already there is replaced, and a national number loses its trunk prefix where the country has one (UK 07… → +44 7…, Germany 0151… → +49 151…), as does "(0)" after a code (+44 (0) 20…). Only the number itself changes: what follows it – an extension, pauses, a second number after "/", letters – stays as it was (the code review of 18 Nov 2026: it was joined into the number).
      */
     fun withCountry(text: String, region: String): String {
-        val national = callingCode(text)?.second ?: util.getNddPrefixForRegion(region, true)?.takeIf { it.isNotEmpty() }?.let { prefix ->
-            digits(text).let { if (it.startsWith(prefix)) it.removePrefix(prefix) else it }
-        } ?: digits(text)
-        return format("+${util.getCountryCodeForRegion(region)}$national", region)
+        val head = head(text)
+        val number = head.replace(TRUNK_AFTER_CODE, "")
+        val national = callingCode(number)?.second ?: util.getNddPrefixForRegion(region, true)?.takeIf { it.isNotEmpty() }?.let { prefix ->
+            digits(number).let { if (it.startsWith(prefix)) it.removePrefix(prefix) else it }
+        } ?: digits(number)
+        return format("+${util.getCountryCodeForRegion(region)}$national", region) + tail(text, head)
     }
 
-    /** [text] without its calling code: the national form where the number is whole ("+49 151 …" → "0151 …"), else the digits after the code. */
+    /** [text] without its calling code: the national form where the number is whole ("+49 151 …" → "0151 …"), else the digits after the code; what follows the number stays as it was. */
     fun withoutCountry(text: String): String {
-        val (_, rest) = callingCode(text) ?: return text
-        val number = runCatching { util.parse(text, "ZZ") }.getOrNull()?.takeIf { util.isValidNumber(it) }
-        return number?.let { util.format(it, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) } ?: rest
+        val head = head(text)
+        val (_, rest) = callingCode(head) ?: return text
+        val number = runCatching { util.parse(head, "ZZ") }.getOrNull()?.takeIf { util.isValidNumber(it) }
+        return (number?.let { util.format(it, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) } ?: rest) + tail(text, head)
+    }
+
+    /** The number itself: [text] up to the first character that can't be part of one (a letter, a pause, "/", "#", "*"). */
+    private fun head(text: String): String = text.takeWhile { it in ALLOWED }
+
+    /** What follows the number, with one space before it where it began with a space or a letter (" ext. 12", " FLOWERS"), glued on otherwise (",,12"). */
+    private fun tail(text: String, head: String): String {
+        val rest = text.substring(head.length)
+        if (rest.isEmpty()) return ""
+        return if (head.endsWith(' ') || rest.first().isLetter()) " " + rest.trimStart() else rest
     }
 
     /**
@@ -63,8 +83,11 @@ object PhoneFormat {
         if (!text.trimStart().startsWith("+") || text.any { it !in ALLOWED }) return text to cursor
         var edited = text
         var at = cursor
-        if (text.length < previous.length && digits(text) == digits(previous) && text.count { it == '+' } == previous.count { it == '+' }) {
-            // Only a separator went: the digit before the cursor goes with it
+        // One separator deleted just before the cursor (Backspace on a space) – not a paste, a deleted selection or one of two spaces, which leave the digits as they were (the code review of 18 Nov 2026: a digit went then)
+        val separatorDeleted = previous.length - text.length == 1 && cursor in previous.indices && previous.removeRange(cursor, cursor + 1) == text &&
+            !previous[cursor].isDigit() && previous[cursor] != '+' && previous.getOrNull(cursor - 1)?.isDigit() == true
+        if (separatorDeleted) {
+            // The digit before the cursor goes with it, or the separator would come straight back
             val before = edited.substring(0, at).indexOfLast { it.isDigit() }
             if (before >= 0) {
                 edited = edited.removeRange(before, before + 1)
@@ -114,6 +137,9 @@ object PhoneFormat {
 
     private const val NON_GEOGRAPHIC = "001"
 
-    /** What a formatted number may hold besides digits. */
-    private const val ALLOWED = "0123456789+ -()./ "
+    /** What a formatted number may hold besides digits; "/" is not one of them: it parts two numbers or a number and its extension. */
+    private const val ALLOWED = "0123456789+ -(). "
+
+    /** "(0)" written after a calling code for the trunk prefix, which isn't dialed with the code. */
+    private val TRUNK_AFTER_CODE = Regex("""(?<=\d)\s*\(0\)""")
 }

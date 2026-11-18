@@ -353,16 +353,23 @@ class ContactSource(private val context: Context) {
     /** The parts of each contact's name, from its first name row with any: the letter avatar's letters (the owner, 18 Nov 2026) and the name the list sorts by, without a title. */
     private fun nameParts(): Map<Long, NameParts> {
         val result = HashMap<Long, NameParts>()
+        // The entry the shown name comes from wins (NAME_RAW_CONTACT_ID): a joined contact "Anna Nowak" with a local entry "Mama" filed under M otherwise (the code review of 18 Nov 2026)
+        val fromShown = HashSet<Long>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
-            arrayOf(ContactsContract.Data.CONTACT_ID, StructuredName.GIVEN_NAME, StructuredName.MIDDLE_NAME, StructuredName.FAMILY_NAME),
+            arrayOf(ContactsContract.Data.CONTACT_ID, StructuredName.GIVEN_NAME, StructuredName.MIDDLE_NAME, StructuredName.FAMILY_NAME, ContactsContract.Data.RAW_CONTACT_ID, ContactsContract.Contacts.NAME_RAW_CONTACT_ID),
             "${ContactsContract.Data.MIMETYPE} = ?", arrayOf(StructuredName.CONTENT_ITEM_TYPE), null,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
-                if (id in result) continue
+                if (id in fromShown) continue
+                val shown = !cursor.isNull(5) && cursor.getLong(4) == cursor.getLong(5)
+                if (id in result && !shown) continue
                 val parts = NameParts(cursor.getString(1), cursor.getString(2), cursor.getString(3))
-                if (listOf(parts.given, parts.middle, parts.family).any { !it.isNullOrBlank() }) result[id] = parts
+                if (listOf(parts.given, parts.middle, parts.family).any { !it.isNullOrBlank() }) {
+                    result[id] = parts
+                    if (shown) fromShown += id
+                }
             }
         }
         return result

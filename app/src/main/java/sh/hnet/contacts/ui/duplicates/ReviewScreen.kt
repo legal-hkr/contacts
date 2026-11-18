@@ -275,6 +275,8 @@ private fun Review(
                     busy = true
                     scope.launch {
                         val name = names.firstOrNull { it.first == nameFrom }?.second
+                        // An earlier save's watch of these entries ends: the merge rewrites them
+                        app.uploads.forget(source.all.entries.map { it.rawContactId })
                         val saved = app.writer.mergePermanently(source, chosenTarget, kept, name, photoFrom)
                         busy = false
                         if (saved != null) onMerged(saved, name?.let { nameOf(listOf(it)) } ?: rows[ids.first()]?.name.orEmpty()) else onFailed()

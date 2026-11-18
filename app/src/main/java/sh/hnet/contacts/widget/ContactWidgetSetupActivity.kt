@@ -81,14 +81,21 @@ object ContactWidgets {
         return Chosen(contact.substringAfter('\n'), contactId, SmallButton.of(prefs.getString("$BUTTON$id", null)))
     }
 
+    @Synchronized
     fun set(context: Context, id: Int, lookupKey: String, contactId: Long, button: SmallButton) = prefs(context).edit {
         putString("$CONTACT$id", "$contactId\n$lookupKey")
         putString("$BUTTON$id", button.key)
     }
 
-    /** The contact got another key or id (a join, a sync): the widget follows it. */
-    fun setContact(context: Context, id: Int, lookupKey: String, contactId: Long) = prefs(context).edit { putString("$CONTACT$id", "$contactId\n$lookupKey") }
+    /** The contact got another key or id (a join, a sync): the widget follows it – only while it still shows [from], read before the redraw; a contact chosen meanwhile, or the widget removed, wins (the code review of 18 Nov 2026). */
+    @Synchronized
+    fun follow(context: Context, id: Int, from: Chosen, lookupKey: String, contactId: Long) {
+        val prefs = prefs(context)
+        if (prefs.getString("$CONTACT$id", null) != "${from.contactId}\n${from.lookupKey}") return
+        prefs.edit { putString("$CONTACT$id", "$contactId\n$lookupKey") }
+    }
 
+    @Synchronized
     fun forget(context: Context, ids: IntArray) = prefs(context).edit {
         ids.forEach {
             remove("$CONTACT$it")

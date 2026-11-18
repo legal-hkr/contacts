@@ -202,12 +202,12 @@ object Widgets {
                         return@forEach
                     }
                     when {
-                        contact == null -> state(app, look, R.drawable.ic_person_remove, R.string.msg_widget_deleted, R.string.button_choose_another, choose(app, id))
+                        contact == null -> state(app, look, R.drawable.ic_person_add, R.string.msg_widget_deleted, R.string.button_choose_another, choose(app, id))
                         contact.sources.isNotEmpty() && contact.sources.all { it.account.key in hidden } ->
-                            state(app, look, R.drawable.ic_person_remove, R.string.msg_widget_hidden, R.string.button_choose_another, choose(app, id))
+                            state(app, look, R.drawable.ic_person_add, R.string.msg_widget_hidden, R.string.button_choose_another, choose(app, id))
                         else -> {
                             // A join or a sync gave the contact another key or id: the widget follows it
-                            if (contact.lookupKey != chosen.lookupKey || contact.id != chosen.contactId) ContactWidgets.setContact(app, id, contact.lookupKey, contact.id)
+                            if (contact.lookupKey != chosen.lookupKey || contact.id != chosen.contactId) ContactWidgets.follow(app, id, chosen, contact.lookupKey, contact.id)
                             val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, layout.circle.toFloat(), app.resources.displayMetrics).toInt()
                             val photo = if (contact.photo == null) null else withContext(Dispatchers.IO) { largePhoto(app, contact.id, px) }
                             oneContact(app, layout, contact, chosen.button, photo, settings.avatarColors, locale)

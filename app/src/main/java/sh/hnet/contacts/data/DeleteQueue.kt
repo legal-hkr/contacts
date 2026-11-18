@@ -26,6 +26,8 @@ class DeleteQueue(private val scope: CoroutineScope, private val writer: Contact
 
     fun delete(deletion: Deletion) {
         commit()
+        // An earlier save's watch of these entries ends: their deletion would read as the server taking the save back
+        uploads.forget(deletion.rawContactIds)
         _hidden.update { it + deletion.contacts }
         _waiting.value = deletion
     }

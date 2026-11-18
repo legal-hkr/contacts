@@ -42,4 +42,13 @@ class UploadCheckTest {
         assertEquals(UploadOutcome.PENDING, UploadCheck.deletion(mapOf(2L to deleted), listOf(1L, 2L)))
         assertEquals(UploadOutcome.REJECTED, UploadCheck.deletion(mapOf(2L to clean), listOf(1L, 2L)))
     }
+
+    @Test
+    fun onlyTheValuesOfTheSavedEntriesAreCompared() {
+        val synced = FormValue(1, EditKind.PHONE, mapOf("data1" to "600 123 456"), origins = listOf(Origin(10, 100)))
+        val local = FormValue(2, EditKind.PHONE, mapOf("data1" to "22 123 45 67"), origins = listOf(Origin(20, 200)))
+        val changedLocally = local.copy(parts = mapOf("data1" to "22 765 43 21"))
+        // Another entry of a joined contact changing meanwhile is not the server's answer
+        assertEquals(UploadCheck.content(listOf(synced, local), listOf(10L)), UploadCheck.content(listOf(synced, changedLocally), listOf(10L)))
+    }
 }

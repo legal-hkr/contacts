@@ -30,6 +30,7 @@ import sh.hnet.contacts.model.EditorDiff
 import sh.hnet.contacts.model.EntryState
 import sh.hnet.contacts.model.FormValue
 import sh.hnet.contacts.model.Origin
+import sh.hnet.contacts.model.UploadCheck
 import sh.hnet.contacts.model.Write
 
 /** An entry of the contact being edited, with the version it had when the editor read it (SPEC §7.7). */
@@ -384,7 +385,7 @@ class ContactWriter(private val context: Context, private val source: ContactSou
             val synced = if (newEntry) rawIds.filter { !source.isLocal((if (recreate) target?.account else account) ?: AccountKey("", "")) } else snapshot.entries.filter { !it.local && it.rawContactId in writable }.map { it.rawContactId }
             val upload = try {
                 if (synced.isEmpty() || saved.lookupKey.isEmpty()) null
-                else Upload(synced, dataRows(synced), load(saved.lookupKey, saved.contactId)?.values.orEmpty().filter { !it.blank }.let(EditorDiff::content))
+                else Upload(synced, dataRows(synced), UploadCheck.content(load(saved.lookupKey, saved.contactId)?.values.orEmpty(), synced))
             } catch (_: Exception) {
                 null
             }

@@ -190,6 +190,8 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
     fun save(onSaved: (Saved) -> Unit, onFailed: () -> Unit) {
         if (saving) return
         saving = true
+        // A watch of an earlier save of this contact ends: this save changes the rows it compares
+        snapshot?.let { read -> app.uploads.forget(read.entries.map { it.rawContactId }) }
         viewModelScope.launch {
             // Created anew only when the contact is gone now, not because the card once said so
             val gone = underneath == Underneath.DELETED && snapshot?.let { read -> app.writer.versions(read.entries.map { it.rawContactId }).isEmpty() } == true
@@ -212,12 +214,13 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
             when (outcome) {
                 UploadOutcome.CONFIRMED -> onSaved(saved)
                 UploadOutcome.PENDING -> {
-                    app.uploads.follow(saved)
+                    app.uploads.follow(saved, formName())
                     onSaved(saved.copy(unconfirmed = true))
                 }
                 UploadOutcome.REJECTED -> {
                     rejectedSave = saved
-                    rejected = (snapshot?.target?.account ?: account?.account)?.name.orEmpty()
+                    // The account that took the change back: of the entries that sync, not the target, which may be a local entry of a joined contact (the code review of 18 Nov 2026)
+                    rejected = (snapshot?.entries?.firstOrNull { it.rawContactId in saved.upload.entries }?.account ?: account?.account)?.name.orEmpty()
                 }
             }
         }
@@ -244,6 +247,11 @@ class EditorViewModel(private val app: ContactsApplication, private val lookupKe
             }
         }
     }
+
+    /** The name in the form, given, middle and family name, for a snackbar about a contact that may be gone by then. */
+    private fun formName(): String = values.firstOrNull { it.kind == EditKind.NAME }?.parts?.let { parts ->
+        listOf("data2", "data5", "data3").mapNotNull { parts[it]?.trim()?.takeIf { part -> part.isNotEmpty() } }.joinToString(" ")
+    }.orEmpty()
 
     /** "Discard changes" after a rejection (D1): the save the account's app took back, for the shell to close the editor as after any save; null for a new contact, which is gone. */
     fun discardRejected(): Saved? = rejectedSave.takeIf { snapshot != null }

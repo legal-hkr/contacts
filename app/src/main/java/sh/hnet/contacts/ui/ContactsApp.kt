@@ -43,7 +43,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -127,8 +130,10 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     // What another app or a widget asked for: its page over the list, whatever was open
     LaunchedEffect(asked) {
         if (asked != null) {
-            // Started for another app's result: its editor alone over the list; reached while running: over what is open, which stays. A widget's contact or the list itself: the list alone under it (SPEC §14, as Calendar's widgets)
-            if ((asked is Screen.Editor && asked.external) || (asked is Screen.Import && asked.external) || asked is Screen.Contact || asked == Screen.Contacts) while (stack.size > 1) stack.removeAt(stack.lastIndex)
+            // Started for another app's result: its editor alone over the list; reached while running: over what is open, which stays. A widget's contact or the list itself: the list alone under it (SPEC §14, as Calendar's widgets) – but an open editor stays under it, as its changes may exist only there or still be on their way to the server (the code review of 18 Nov 2026: they went without a word)
+            val widget = asked is Screen.Contact || asked == Screen.Contacts
+            val editing = stack.any { it is Screen.Editor }
+            if ((asked is Screen.Editor && asked.external) || (asked is Screen.Import && asked.external) || (widget && !editing)) while (stack.size > 1) stack.removeAt(stack.lastIndex)
             if (asked != Screen.Contacts) stack.add(asked)
             onOpened()
         }
@@ -235,14 +240,19 @@ fun ContactsApp(asked: Screen? = null, onOpened: () -> Unit = {}) {
     }
 
     // Changes and deletes an account's app took back after the editor or the Undo snackbar was gone (D3, D4), wherever the user is now
-    LaunchedEffect(Unit) {
-        app.uploads.rejections.collect { rejection ->
-            messages.launch {
-                when (rejection) {
-                    is UploadWatch.Rejection.Change -> if (snackbars.showSnackbar(changesRejected.format(rejection.name), actionLabel = show, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
-                        open(Screen.Contact(rejection.lookupKey, rejection.contactId))
+    // Taken only while the app is on screen: one that comes while it is away waits for it, so the snackbar isn't spent unseen
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            app.uploads.rejections.collect { rejection ->
+                messages.launch {
+                    when (rejection) {
+                        // Show only for a contact that is still there
+                        is UploadWatch.Rejection.Change -> if (snackbars.showSnackbar(changesRejected.format(rejection.name), actionLabel = show.takeIf { rejection.exists }, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
+                            open(Screen.Contact(rejection.lookupKey, rejection.contactId))
+                        }
+                        is UploadWatch.Rejection.Deletion -> snackbars.showSnackbar(deletionRejected.format(NumberFormat.getIntegerInstance(locale).format(rejection.contacts)), duration = SnackbarDuration.Short)
                     }
-                    is UploadWatch.Rejection.Deletion -> snackbars.showSnackbar(deletionRejected.format(NumberFormat.getIntegerInstance(locale).format(rejection.contacts)), duration = SnackbarDuration.Short)
                 }
             }
         }

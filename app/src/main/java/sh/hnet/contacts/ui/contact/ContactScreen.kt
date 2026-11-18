@@ -228,6 +228,8 @@ private fun ContactContent(
     fun pick(values: List<Detail>, action: Action, run: (String) -> Unit) {
         val default = values.firstOrNull { it.isDefault }
         when {
+            // Nothing to choose from (the widget's numbers went meanwhile): no empty sheet
+            values.isEmpty() -> Unit
             default != null -> run(default.value)
             values.size == 1 -> run(values[0].value)
             else -> choosing = Choice(action, values)

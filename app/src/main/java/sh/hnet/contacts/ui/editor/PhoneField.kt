@@ -56,6 +56,8 @@ fun PhoneField(text: String, onChange: (String) -> Unit, modifier: Modifier = Mo
     // The country picked from the list, for a code several countries share (+1 Canada, not the United States)
     var chosen by rememberSaveable { mutableStateOf<String?>(null) }
     var picking by remember { mutableStateOf(false) }
+    // Asked of the system once, not at every keystroke
+    val pinned = remember(context) { pinnedRegions(context) }
     val region = PhoneFormat.regionOf(field.text, chosen)
     val country = region?.let { remember(it, locale) { PhoneFormat.country(it, locale) } }
     val description = country?.let { stringResource(R.string.content_description_country, it.name) } ?: stringResource(R.string.title_country_code)
@@ -79,7 +81,7 @@ fun PhoneField(text: String, onChange: (String) -> Unit, modifier: Modifier = Mo
                 IconButton(onClick = { picking = true }, modifier = Modifier.semantics { contentDescription = description }) {
                     if (country != null) Text(country.flag, fontSize = 20.sp) else Icon(painterResource(R.drawable.ic_public), contentDescription = null)
                 }
-                CountryMenu(picking, region, pinnedRegions(context), locale, onDismiss = { picking = false }) { picked ->
+                CountryMenu(picking, PhoneFormat.hasCode(field.text), pinned, locale, onDismiss = { picking = false }) { picked ->
                     picking = false
                     chosen = picked?.region
                     val changed = if (picked == null) PhoneFormat.withoutCountry(field.text) else PhoneFormat.withCountry(field.text, picked.region)
@@ -104,15 +106,17 @@ private fun pinnedRegions(context: Context): List<String> {
 }
 
 /**
- * The countries' menu at the flag, as the editor's other menus (M3 Expressive groups): "No country code" while the number has one, the countries of the mobile network and of the phone's region setting (one when they are the same), then every country by name, each as "Polska (+48)" after its flag.
+ * The countries' menu at the flag, as the editor's other menus (M3 Expressive groups): "No country code" while the number has a code (a country's or not), the countries of the mobile network and of the phone's region setting (one when they are the same), then every country by name, each as "Polska (+48)" after its flag.
  */
 @Composable
-private fun CountryMenu(expanded: Boolean, current: String?, pinned: List<String>, locale: Locale, onDismiss: () -> Unit, onPick: (PhoneFormat.Country?) -> Unit) {
-    val countries = remember(locale) { PhoneFormat.countries(locale) }
-    val pinnedCountries = remember(countries, pinned) { pinned.mapNotNull { region -> countries.firstOrNull { it.region == region } } }
+private fun CountryMenu(expanded: Boolean, hasCode: Boolean, pinned: List<String>, locale: Locale, onDismiss: () -> Unit, onPick: (PhoneFormat.Country?) -> Unit) {
     DropdownMenuPopup(expanded = expanded, onDismissRequest = onDismiss, modifier = Modifier.menuScroll()) {
+        // Only while the menu is open (the model keeps the list once made): the editor's every phone field composed the whole list at opening
+        val countries = remember(locale) { PhoneFormat.countries(locale) }
+        val pinnedCountries = remember(countries, pinned) { pinned.mapNotNull { region -> countries.firstOrNull { it.region == region } } }
         val groups = listOfNotNull(
-            if (current != null) listOf<PhoneFormat.Country?>(null) else null,
+            // A code of no country (+800) can be taken off too
+            if (hasCode) listOf<PhoneFormat.Country?>(null) else null,
             pinnedCountries.ifEmpty { null },
             countries,
         )

@@ -52,6 +52,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -130,8 +131,8 @@ fun EditorScreen(
     val saveFailed = stringResource(R.string.error_save_failed)
     val photoFailed = stringResource(R.string.error_photo_not_saved)
     val unreadable = stringResource(R.string.error_photo_unreadable)
-    // Nothing closes the editor while it waits for the account's app (D1): the save is already in the storage
-    val close: () -> Unit = { if (viewModel.uploading) Unit else if (viewModel.changed && viewModel.rejected == null) discarding = true else onClose() }
+    // Nothing closes the editor while it waits for the account's app (D1): the save is already in the storage. After a rejection the form holds changes found nowhere else: Back asks too (the code review of 18 Nov 2026)
+    val close: () -> Unit = { if (viewModel.uploading) Unit else if (viewModel.changed || viewModel.rejected != null) discarding = true else onClose() }
     val focus = LocalFocusManager.current
     LaunchedEffect(viewModel.uploading) { if (viewModel.uploading) focus.clearFocus() }
     BackHandler(enabled = cropping == null) { close() }
@@ -241,7 +242,10 @@ private fun Form(viewModel: EditorViewModel, onPickPhoto: () -> Unit, onEditPhot
             if (ofKind.isEmpty()) continue
             Section(kind) {
                 ofKind.forEach { value ->
-                    ValueFields(value, onChange = viewModel::update, onRemove = { viewModel.remove(value) }, onDate = { dating = value }, onDefault = { on -> viewModel.setDefault(value, on) }, onlyOne = ofKind.size == 1)
+                    // Each field's own state (the phone's country, its cursor) stays with its value, not its place: a removed value no longer hands it to the next (the code review of 18 Nov 2026)
+                    key(value.key) {
+                        ValueFields(value, onChange = viewModel::update, onRemove = { viewModel.remove(value) }, onDate = { dating = value }, onDefault = { on -> viewModel.setDefault(value, on) }, onlyOne = ofKind.size == 1)
+                    }
                 }
                 LOOKS.getValue(kind).add?.let { add ->
                     TextButton(onClick = { viewModel.add(kind) }) {
@@ -299,7 +303,7 @@ private fun UploadCard(viewModel: EditorViewModel, onKeep: () -> Unit, onDiscard
             verticalAlignment = Alignment.CenterVertically,
         ) {
             LoadingIndicator(Modifier.size(24.dp))
-            Text(stringResource(R.string.label_sending, viewModel.snapshot?.target?.account?.name ?: viewModel.account?.account?.name.orEmpty()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.label_sending, (viewModel.snapshot?.entries?.firstOrNull { !it.local && !it.readOnly } ?: viewModel.snapshot?.target)?.account?.name ?: viewModel.account?.account?.name.orEmpty()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else if (rejected != null) {
         Column(

@@ -53,12 +53,13 @@ class MainActivity : ComponentActivity() {
         Widgets.update(this)
     }
 
-    /** What a tap on a widget points at (SPEC §14): a contact's page over the list, or the list itself; the back stack is cleared either way, as Calendar's widgets do. */
+    /** What a tap on a widget points at (SPEC §14): a contact's page over the list, or the list itself; the back stack is cleared either way, as Calendar's widgets do – unless an editor is open (ContactsApp). */
     private fun widget(intent: Intent?): Screen? {
         if (intent?.action != Intent.ACTION_VIEW || intent.data?.scheme != WidgetRequest.SCHEME) return null
         // An address not understood (an old pending intent after a change of the format) just opens the app
         return when (val request = WidgetRequest.of(intent.data) ?: return Screen.Contacts) {
-            is WidgetRequest.Contact -> Screen.Contact(request.lookupKey, request.id)
+            // The number sheet's request goes along (the code review of 18 Nov 2026: it was dropped, so the sheet never opened)
+            is WidgetRequest.Contact -> Screen.Contact(request.lookupKey, request.id, ask = request.ask, session = if (request.ask != null) System.nanoTime() else 0)
             WidgetRequest.Open -> Screen.Contacts
         }
     }

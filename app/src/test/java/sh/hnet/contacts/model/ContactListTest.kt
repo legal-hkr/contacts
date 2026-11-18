@@ -109,7 +109,7 @@ class ContactListTest {
 
     @Test
     fun initialsAreGivenThenFamilyNameAlways() {
-        val pl = java.util.Locale.forLanguageTag("pl")
+        val pl = Locale.forLanguageTag("pl")
         assertEquals("JK", Avatars.initials("Jan", "Kowalski", pl))
         assertEquals("ŁŻ", Avatars.initials("łucja", "żak", pl))
         assertEquals("J", Avatars.initials("Jan", null, pl))

@@ -19,6 +19,12 @@ object UploadCheck {
         return if (sameContent()) UploadOutcome.CONFIRMED else UploadOutcome.REJECTED
     }
 
+    /**
+     * What a save is checked by: the values stored in [entries] – the entries of accounts that sync it wrote –, not the whole contact, so another entry of a joined contact changing meanwhile (a local one, another account's sync) isn't taken for the server's answer (the code review of 18 Nov 2026).
+     */
+    fun content(values: List<FormValue>, entries: Collection<Long>): List<String> =
+        EditorDiff.content(values.filter { value -> !value.blank && value.origins.any { it.rawContactId in entries } })
+
     /** A delete of [entries]: sent when the storage dropped them, waiting while they are marked deleted, rejected when one came back. */
     fun deletion(states: Map<Long, EntryState>, entries: Collection<Long>): UploadOutcome {
         val left = entries.filter { it in states }

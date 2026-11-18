@@ -9,9 +9,9 @@ sealed interface Screen : NavKey {
     @Serializable data object Contacts : Screen
     /**
      * A contact's page, by its lookup key (which survives syncs and joins) and the id it had when
-     * opened; the [name] and [photo] the list showed, so the page's header stands at once. [ask] is a quick action the one-contact widget couldn't carry out alone ("call", "message": several numbers, none the default): the page opens with the number sheet for it.
+     * opened; the [name] and [photo] the list showed, so the page's header stands at once. [ask] is a quick action the one-contact widget couldn't carry out alone ("call", "message": several numbers, none the default): the page opens with the number sheet for it; [session] tells one such tap from the next, so a second tap is a page of its own and asks again.
      */
-    @Serializable data class Contact(val lookupKey: String, val id: Long, val name: String? = null, val photo: String? = null, val ask: String? = null) : Screen
+    @Serializable data class Contact(val lookupKey: String, val id: Long, val name: String? = null, val photo: String? = null, val ask: String? = null, val session: Long = 0) : Screen
     /**
      * The editor: the contact [lookupKey] / [id], or a new one when [lookupKey] is null, with what
      * another app handed over; [external] when that app waits for the result (SPEC §3.4). [session]
