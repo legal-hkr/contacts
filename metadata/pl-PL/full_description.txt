@@ -10,6 +10,7 @@ Strona kontaktu i edytor:
 - Połączenie, wiadomość i e-mail jednym dotknięciem, z jednym domyślnym numerem do połączeń i wiadomości
 - Numery, adresy e-mail, adresy, strony internetowe, daty, relacje, komunikatory i adresy SIP, notatki; przytrzymanie kopiuje wartość
 - W edytorze każdy rodzaj danych, z własnymi etykietami, i zdjęcie wybrane oraz przycięte w telefonie
+- Kraj przy każdym numerze telefonu, wybierany z listy: kod kraju jest dodawany na początku numeru, a numer jest formatowany zgodnie z zapisem przyjętym w tym kraju
 - „Utwórz kontakt” z innych aplikacji, na przykład z aplikacji Telefon
 - Usuwanie z możliwością cofnięcia, udostępnianie jako plik vCard
 
@@ -27,6 +28,11 @@ Import i eksport:
 - Pliki vCard 2.1, 3.0 i 4.0 otwarte z innej aplikacji, udostępnione albo wybrane, także w kodowaniach starych telefonów
 - Kontakty, które już istnieją w telefonie, są oznaczane; import można cofnąć
 - Eksport wszystkich kontaktów albo wybranych kont do jednego pliku vCard, ze zdjęciami lub bez
+
+Widżety:
+- Ulubione: kontakty oznaczone gwiazdką, ze zdjęciami, tyle, ile mieści się w widżecie; dotknięcie otwiera kontakt
+- Kontakt: okrągłe zdjęcie jednej osoby z imieniem oraz przyciskami Zadzwoń i Wiadomość, od rozmiaru 1 × 1
+- Wszystkie bez tła, bezpośrednio na tapecie, w kolorach systemu i odświeżane przy każdej zmianie kontaktów
 
 A także:
 - Kopia zapasowa ustawień w wybranym pliku; kopia nigdy nie zawiera kontaktów

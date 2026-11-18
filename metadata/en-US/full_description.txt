@@ -10,6 +10,7 @@ Contact page and editor:
 - Call, message and email in one tap, with one default number for calls and messages
 - Numbers, email addresses, addresses, websites, dates, relationships, messaging and SIP addresses, notes; touch and hold to copy
 - Every kind of detail in the editor, with your own labels, and a photo picked and cropped on the phone
+- A country for each phone number, picked from a list: its calling code is added and the number is formatted the way it is written in that country
 - “Create contact” from other apps, such as the phone app
 - Deleting with Undo; sharing as a vCard file
 
@@ -27,6 +28,11 @@ Import and export:
 - vCard files 2.1, 3.0 and 4.0, opened from another app, shared, or picked, including the character sets of older phones
 - Contacts already on the phone are marked; an import can be undone
 - Export of all contacts, or of chosen accounts, to one vCard file, with or without photos
+
+Widgets:
+- Favorites: your favorite contacts with their photos, as many as fit in the widget; a tap opens the contact
+- Contact: one person’s round photo and name with Call and Message buttons, from 1 × 1 up
+- All without a background, directly on the wallpaper, in your phone’s colors and updated whenever your contacts change
 
 And also:
 - Backup and restore of settings to a file you choose; contacts are never in it

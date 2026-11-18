@@ -2,7 +2,7 @@
 
 A private address book for Android: the contacts already on your phone, with favorites, search in every field, merging of duplicates and vCard import and export, and no Internet access.
 
-**Current version**: v0.1.0
+**Current version**: v0.2.0
 
 Source code and releases: [git.hnet.sh/hkr/contacts](https://git.hnet.sh/hkr/contacts)
 
@@ -30,6 +30,7 @@ Contacts shows and changes the contacts kept in the phone’s own contacts stora
 - **Quick actions**: Call, message and email in one tap, with one default number for calls and messages
 - **Details**: Numbers, email addresses, addresses, websites, dates, relationships, messaging and SIP addresses, notes; touch and hold to copy
 - **Editor**: Every kind of detail with your own labels, and a photo picked and cropped on the phone
+- **Phone numbers**: Pick a country from a list to add its calling code and format the number the way it is written in that country
 - **Create contact**: From other apps, such as the phone app
 - **Undo**: Deleting takes effect at once and can be undone; contacts can be shared as a vCard file
 
@@ -49,6 +50,12 @@ Contacts shows and changes the contacts kept in the phone’s own contacts stora
 
 - **vCard import**: Versions 2.1, 3.0 and 4.0, opened from another app, shared, or picked, including the character sets of older phones; contacts already on the phone are marked, and an import can be undone
 - **vCard export**: All contacts, or chosen accounts, to one file, with or without photos
+
+### Widgets
+
+- **Favorites**: Your favorite contacts with their photos, as many as fit in the widget; a tap opens the contact
+- **Contact**: One person’s round photo and name with Call and Message buttons, from 1 × 1 up
+- **Without a background**: Directly on the wallpaper, in your phone’s colors, updated whenever your contacts change
 
 ### Settings
 
@@ -88,6 +95,7 @@ Development happens on [git.hnet.sh](https://git.hnet.sh/hkr/contacts), where th
 - **Min SDK**: Android 14 (API 34), **target SDK**: API 37
 - **UI**: Jetpack Compose with Material 3 Expressive
 - **Data**: The system’s contacts provider (ContactsContract), DataStore
+- **Phone numbers**: libphonenumber
 
 ## License
 

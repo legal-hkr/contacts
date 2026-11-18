@@ -1,0 +1,9 @@
+v0.2.0
+
+New:
+- Widgets: “Favorites” with your favorite contacts and “Contact” with one person’s photo and Call and Message buttons, in your phone’s colors
+- A country for phone numbers in the editor: its calling code is added and the number is formatted the way it is written in that country
+
+Fixes:
+- A change the server rejects is kept on the phone when the contact also has a local entry
+- Messages about rejected changes are no longer lost when the app is in the background

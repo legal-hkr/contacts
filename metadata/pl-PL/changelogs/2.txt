@@ -1,0 +1,9 @@
+v0.2.0
+
+Nowości:
+- Widżety: „Ulubione” z kontaktami oznaczonymi gwiazdką i „Kontakt” ze zdjęciem jednej osoby oraz przyciskami Zadzwoń i Wiadomość, w kolorach systemu
+- Kraj przy numerze telefonu w edytorze: kod kraju jest dodawany na początku numeru, a numer jest formatowany zgodnie z zapisem przyjętym w tym kraju
+
+Poprawki:
+- Zmiana, której serwer nie przyjął, pozostaje w telefonie, gdy kontakt ma też lokalny wpis
+- Komunikaty o nieprzyjętych zmianach nie giną już, gdy aplikacja działa w tle
