@@ -438,9 +438,10 @@ class ContactSource(private val context: Context) {
         var photo: String? = null
         var starred = false
         var key = lookupKey
+        var nameEntry = -1L
         resolver.query(
             uri,
-            arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY, ContactsContract.Contacts.DISPLAY_NAME_ALTERNATIVE, ContactsContract.Contacts.PHOTO_URI, ContactsContract.Contacts.STARRED, ContactsContract.Contacts.LOOKUP_KEY, ContactsContract.Contacts.PHOTO_FILE_ID, ContactsContract.Contacts.PHOTO_ID),
+            arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY, ContactsContract.Contacts.DISPLAY_NAME_ALTERNATIVE, ContactsContract.Contacts.PHOTO_URI, ContactsContract.Contacts.STARRED, ContactsContract.Contacts.LOOKUP_KEY, ContactsContract.Contacts.PHOTO_FILE_ID, ContactsContract.Contacts.PHOTO_ID, ContactsContract.Contacts.NAME_RAW_CONTACT_ID),
             null, null, null,
         )?.use { cursor ->
             if (!cursor.moveToFirst()) return@withContext null
@@ -449,6 +450,7 @@ class ContactSource(private val context: Context) {
             photo = photoAddress(cursor.getString(2), cursor.getString(5), cursor.getString(6))
             starred = cursor.getInt(3) != 0
             key = cursor.getString(4) ?: lookupKey
+            if (!cursor.isNull(7)) nameEntry = cursor.getLong(7)
         } ?: return@withContext null
 
         val sources = ArrayList<Source>()
@@ -472,6 +474,8 @@ class ContactSource(private val context: Context) {
         var company: String? = null
         var initials: String? = null
         var givenName: String? = null
+        // The letters and the short name come from the entry the shown name comes from, as the list's (ContactSource.nameParts) and Dialer's: a joined contact's page showed other letters than its row (found in Dialer's session, 26 Nov 2026)
+        var namedFromShown = false
         val values = ArrayList<Detail>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
@@ -495,8 +499,14 @@ class ContactSource(private val context: Context) {
                 }
                 when (cursor.getString(2)) {
                     StructuredName.CONTENT_ITEM_TYPE -> {
-                        if (initials == null) initials = Avatars.initials(cursor.getString(4), cursor.getString(5), Locale.getDefault())
-                        if (givenName == null) givenName = cursor.getString(4)?.trim()?.takeIf { it.isNotEmpty() }
+                        val given = cursor.getString(4)?.trim()?.takeIf { it.isNotEmpty() }
+                        val parts = given != null || !cursor.getString(5).isNullOrBlank() || !cursor.getString(7).isNullOrBlank()
+                        val shown = raw == nameEntry && parts
+                        if (!namedFromShown && (shown || (initials == null && parts))) {
+                            initials = Avatars.initials(cursor.getString(4), cursor.getString(5), Locale.getDefault())
+                            givenName = given
+                            namedFromShown = shown
+                        }
                         if (phoneticGiven == null) phoneticGiven = cursor.getString(9)?.trim()?.takeIf { it.isNotEmpty() }
                         if (phoneticFamily == null) phoneticFamily = cursor.getString(10)?.trim()?.takeIf { it.isNotEmpty() }
                     }
