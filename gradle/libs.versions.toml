@@ -1,16 +1,16 @@
 [versions]
-agp = "9.5.1"
+agp = "9.5.3"
 kotlin = "2.4.21"
 coreKtx = "1.19.1"
 activityCompose = "1.13.0"
-lifecycle = "2.11.0"
-composeBom = "2026.09.00"
+lifecycle = "2.11.1"
+composeBom = "2026.11.01"
 # Expressive components are newer than the BOM's material3 (1.4.0)
-composeMaterial3 = "1.5.0-rc01"
+composeMaterial3 = "1.5.0"
 junit = "4.13.2"
-navigation3 = "1.2.1"
+navigation3 = "1.2.2"
 datastore = "1.3.0"
-serialization = "1.12.0"
+serialization = "1.13.0"
 # Phone numbers: countries, calling codes and formats as the user types (Apache 2.0)
 libphonenumber = "9.0.44"
 
