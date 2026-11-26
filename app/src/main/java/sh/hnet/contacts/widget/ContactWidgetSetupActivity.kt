@@ -228,7 +228,7 @@ private fun Picker(onBack: () -> Unit, onPick: (String, Long) -> Unit) {
         Text(stringResource(R.string.title_choose_contact), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp))
         LazyColumn(Modifier.fillMaxSize(), contentPadding = WindowInsets.navigationBars.asPaddingValues()) {
             items(results, key = { it.contact.id }) { result ->
-                ListItem(onClick = { onPick(result.contact.lookupKey, result.contact.id) }, leadingContent = { Avatar(result.contact.name, result.contact.lookupKey, result.contact.photo, 40.dp, initials = result.contact.initials) }) {
+                ListItem(onClick = { onPick(result.contact.lookupKey, result.contact.id) }, leadingContent = { Avatar(result.contact.name, result.contact.lookupKey, result.contact.photo, 40.dp, initials = result.contact.initials, large = result.contact.largePhoto) }) {
                     Text(result.contact.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }

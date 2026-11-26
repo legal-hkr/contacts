@@ -125,14 +125,14 @@ private fun GroupCard(group: DupGroup, rows: Map<Long, ContactRow>, onClick: () 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.width(56.dp).height(40.dp)) {
-            if (first != null) Avatar(first.name, first.lookupKey, first.photo, 40.dp, initials = first.initials)
+            if (first != null) Avatar(first.name, first.lookupKey, first.photo, 40.dp, initials = first.initials, large = first.largePhoto)
             Box(Modifier.offset(x = 16.dp).border(2.dp, MaterialTheme.colorScheme.surfaceContainer, CircleShape)) {
                 if (group.ids.size > 2) {
                     Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
                         Text(stringResource(R.string.label_more_avatars, group.ids.size - 1), color = MaterialTheme.colorScheme.onSecondaryContainer, style = MaterialTheme.typography.labelLarge)
                     }
                 } else if (second != null) {
-                    Avatar(second.name, second.lookupKey, second.photo, 40.dp, initials = second.initials)
+                    Avatar(second.name, second.lookupKey, second.photo, 40.dp, initials = second.initials, large = second.largePhoto)
                 }
             }
         }

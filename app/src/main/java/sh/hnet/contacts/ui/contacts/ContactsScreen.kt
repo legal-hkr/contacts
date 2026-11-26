@@ -363,7 +363,7 @@ private fun ContactList(state: ListState.Ready, selection: Selection, onOpenCont
                                 .padding(start = 16.dp, end = 16.dp, bottom = if (place < size - 1) 2.dp else 0.dp)
                                 .onTouchDown(contact.id, onPress = { if (!selection.active) app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
                             colors = if (selected) ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.secondaryContainer) else settingsRowColors(),
-                            leadingContent = { if (selected) SelectedMark(40.dp) else Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp, initials = contact.initials) },
+                            leadingContent = { if (selected) SelectedMark(40.dp) else Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp, initials = contact.initials, large = contact.largePhoto) },
                             supportingContent = company?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
                         ) {
                             Text(contact.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -405,7 +405,7 @@ private fun Favorites(favorites: List<ContactRow>, onOpenContact: (ContactRow) -
                         .padding(vertical = 4.dp)
                         .semantics(mergeDescendants = true) { contentDescription = contact.name },
                 ) {
-                    Avatar(contact.name, contact.lookupKey, contact.photo, 56.dp, initials = contact.initials)
+                    Avatar(contact.name, contact.lookupKey, contact.photo, 56.dp, initials = contact.initials, large = contact.largePhoto)
                     Text(
                         contact.shortName ?: contact.name,
                         style = MaterialTheme.typography.labelMedium,

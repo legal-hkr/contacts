@@ -257,6 +257,7 @@ class ContactSource(private val context: Context) {
                 ContactsContract.Contacts.STARRED,
                 ContactsContract.Contacts.PHOTO_FILE_ID,
                 ContactsContract.Contacts.PHOTO_ID,
+                ContactsContract.Contacts.PHOTO_URI,
             ),
             null, null, null,
         )?.use { cursor ->
@@ -274,6 +275,7 @@ class ContactSource(private val context: Context) {
                     company = companies[id],
                     shortName = shortNames[id],
                     initials = names[id]?.let { Avatars.initials(it.given, it.family, Locale.getDefault()) },
+                    largePhoto = photoAddress(cursor.getString(8), cursor.getString(6), cursor.getString(7)),
                 ) to (id in shown)
             }
         }

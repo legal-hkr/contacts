@@ -53,6 +53,7 @@ import sh.hnet.contacts.model.FavoritesGrid
 import sh.hnet.contacts.model.ListSettings
 import sh.hnet.contacts.model.favorites
 import sh.hnet.contacts.ui.components.AVATAR_PALETTE
+import sh.hnet.contacts.ui.components.THUMBNAIL_PX
 
 /** What a tap on a widget asks the app for, carried as the intent's address so that each tap's intent is its own. */
 sealed interface WidgetRequest {
@@ -163,7 +164,8 @@ object Widgets {
         // Each photo read once, at the size the largest avatar of any widget needs
         val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (fits.values.maxOfOrNull { it.avatar } ?: FavoritesGrid.AVATAR).toFloat(), app.resources.displayMetrics).toInt()
         val wanted = favorites.take(fits.values.maxOfOrNull { it.count } ?: 0)
-        val photos = withContext(Dispatchers.IO) { wanted.mapNotNull { row -> row.photo?.let { address -> photo(app, address, px)?.let { address to it } } }.toMap() }
+        // Larger than the storage's thumbnail: from the full photo, as the app's avatars (the thumbnail would be blurred and blocky); kept under the thumbnail's address, which the cells look up
+        val photos = withContext(Dispatchers.IO) { wanted.mapNotNull { row -> row.photo?.let { address -> photo(app, if (px > THUMBNAIL_PX) row.largePhoto ?: address else address, px)?.let { address to it } } }.toMap() }
 
         ids.forEach { id ->
             val fit = fits.getValue(id)

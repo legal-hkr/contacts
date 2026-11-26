@@ -38,6 +38,7 @@ data class ListSettings(val sortByLast: Boolean = true, val lastFirst: Boolean =
  * @param name The name shown, in the order of [ListSettings.lastFirst]
  * @param sortName The name the list is sorted and filed by, in the order of [ListSettings.sortByLast]
  * @param photo The storage's thumbnail address, or null for the letter avatar
+ * @param largePhoto The full photo's address, for avatars larger than the thumbnail
  * @param company "company, title", or whichever of the two exists; null when the setting is off or there is none
  * @param initials The letter avatar's letters (the first of the given name and of the family name); null to take the name's first letter
  * @param shortName What the favorites row shows under the avatar (SPEC §4.3): the nickname, else the given name; null for other contacts or when neither exists
@@ -52,6 +53,7 @@ data class ContactRow(
     val company: String? = null,
     val shortName: String? = null,
     val initials: String? = null,
+    val largePhoto: String? = null,
 )
 
 /** What the list draws: a letter's header, then its contacts. */

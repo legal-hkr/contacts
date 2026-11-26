@@ -58,6 +58,9 @@ private object Photos {
     }
 }
 
+/** The contacts storage's thumbnail size (`DisplayPhoto.THUMBNAIL_MAX_DIM`, 96 px in AOSP): a photo shown larger is read from the full one. */
+internal const val THUMBNAIL_PX = 96
+
 /** Whether letter avatars take the palette in many colors (Settings › List, the owner's choice of 18 Nov 2026); provided by the shell. */
 val LocalAvatarColors = staticCompositionLocalOf { true }
 
@@ -78,13 +81,18 @@ val AVATAR_PALETTE = listOf(
  * the owner, 18 Nov 2026), else the name's first letter.
  *
  * @param hint A photo known to show the same image (the list's thumbnail while the page reads the large one), shown until [photo] is read
+ * @param large The full photo of a list's [photo] (its thumbnail): read instead when the avatar is larger than the thumbnail, which would show blurred and blocky (the owner, 26 Nov 2026)
  */
 @Composable
-fun Avatar(name: String, lookupKey: String, photo: String?, size: Dp, modifier: Modifier = Modifier, hint: String? = null, initials: String? = null) {
+fun Avatar(name: String, lookupKey: String, photo: String?, size: Dp, modifier: Modifier = Modifier, hint: String? = null, initials: String? = null, large: String? = null) {
     val context = LocalContext.current
     val px = with(LocalDensity.current) { size.roundToPx() }
+    // The storage's thumbnail is at most THUMBNAIL_PX square: a larger avatar reads the full photo, scaled down as it is decoded
+    val fromLarge = large != null && px > THUMBNAIL_PX
+    val source = if (fromLarge) large else photo
+    val meanwhile = if (fromLarge) photo else hint
     // What is already in memory shows at once: no letter flashing before a photo read a moment ago
-    val image by produceState(photo?.let { Photos.peek(it, px) } ?: hint?.let { Photos.peek(it, px) }, photo, px) { value = photo?.let { Photos.load(context, it, px) } }
+    val image by produceState(source?.let { Photos.peek(it, px) } ?: meanwhile?.let { Photos.peek(it, px) }, source, px) { value = source?.let { Photos.load(context, it, px) } }
     val bitmap = image
     if (bitmap != null) {
         Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier.size(size).clip(CircleShape))

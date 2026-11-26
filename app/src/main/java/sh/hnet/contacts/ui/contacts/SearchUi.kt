@@ -154,7 +154,7 @@ private fun ResultRow(result: SearchResult, place: Int, size: Int, onOpenContact
         shapes = groupShapes(place, size),
         colors = settingsRowColors(),
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = if (place < size - 1) 2.dp else 0.dp).onTouchDown(contact.id, onPress = { app.prefetch(contact.lookupKey, contact.id) }, onMove = app::cancelPrefetch),
-        leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp, initials = contact.initials) },
+        leadingContent = { Avatar(contact.name, contact.lookupKey, contact.photo, 40.dp, initials = contact.initials, large = contact.largePhoto) },
         supportingContent = result.field?.let { field -> { Text(matchLine(field.kind, field.type, field.label, result.text, result.range), maxLines = 1, overflow = TextOverflow.Ellipsis) } },
     ) {
         Text(headline, maxLines = 1, overflow = TextOverflow.Ellipsis)
