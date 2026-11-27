@@ -165,7 +165,8 @@ object Widgets {
         val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, (fits.values.maxOfOrNull { it.avatar } ?: FavoritesGrid.AVATAR).toFloat(), app.resources.displayMetrics).toInt()
         val wanted = favorites.take(fits.values.maxOfOrNull { it.count } ?: 0)
         // Larger than the storage's thumbnail: from the full photo, as the app's avatars (the thumbnail would be blurred and blocky); kept under the thumbnail's address, which the cells look up
-        val photos = withContext(Dispatchers.IO) { wanted.mapNotNull { row -> row.photo?.let { address -> photo(app, if (px > THUMBNAIL_PX) row.largePhoto ?: address else address, px)?.let { address to it } } }.toMap() }
+        // A full photo that can't be read falls back to the thumbnail (the code review of 27 Nov 2026)
+        val photos = withContext(Dispatchers.IO) { wanted.mapNotNull { row -> row.photo?.let { address -> (row.largePhoto?.takeIf { px > THUMBNAIL_PX }?.let { photo(app, it, px) } ?: photo(app, address, px))?.let { address to it } } }.toMap() }
 
         ids.forEach { id ->
             val fit = fits.getValue(id)

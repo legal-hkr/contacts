@@ -331,20 +331,27 @@ class ContactSource(private val context: Context) {
         return international.removePrefix("+").removeSuffix(national.trimStart('0')).takeIf { it.isNotEmpty() && it.all(Char::isDigit) && it.length <= 3 }
     }
 
-    /** The favorites row's label per starred contact (SPEC §4.3): the nickname, else the given name. */
+    /** The favorites row's label per starred contact (SPEC §4.3): the nickname, else the given name – the shown name's entry's when it has one, as the one-contact widget's ([details]). */
     private fun shortNames(): Map<Long, String> {
         val nicknames = HashMap<Long, String>()
         val given = HashMap<Long, String>()
+        val givenFromShown = HashSet<Long>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
-            arrayOf(ContactsContract.Data.CONTACT_ID, ContactsContract.Data.MIMETYPE, ContactsContract.Data.DATA1, ContactsContract.Data.DATA2),
+            arrayOf(ContactsContract.Data.CONTACT_ID, ContactsContract.Data.MIMETYPE, ContactsContract.Data.DATA1, ContactsContract.Data.DATA2, ContactsContract.Data.RAW_CONTACT_ID, ContactsContract.Contacts.NAME_RAW_CONTACT_ID),
             "${ContactsContract.Data.STARRED} = 1 AND ${ContactsContract.Data.MIMETYPE} IN (?, ?)",
             arrayOf(Nickname.CONTENT_ITEM_TYPE, StructuredName.CONTENT_ITEM_TYPE), null,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
                 if (cursor.getString(1) == Nickname.CONTENT_ITEM_TYPE) cursor.getString(2)?.trim()?.takeIf { it.isNotEmpty() }?.let { nicknames.putIfAbsent(id, it) }
-                else cursor.getString(3)?.trim()?.takeIf { it.isNotEmpty() }?.let { given.putIfAbsent(id, it) }
+                else cursor.getString(3)?.trim()?.takeIf { it.isNotEmpty() }?.let { name ->
+                    val shown = cursor.getLong(4) == cursor.getLong(5)
+                    if (id !in givenFromShown && (shown || id !in given)) {
+                        given[id] = name
+                        if (shown) givenFromShown += id
+                    }
+                }
             }
         }
         return given + nicknames
@@ -476,6 +483,7 @@ class ContactSource(private val context: Context) {
         var givenName: String? = null
         // The letters and the short name come from the entry the shown name comes from, as the list's (ContactSource.nameParts) and Dialer's: a joined contact's page showed other letters than its row (found in Dialer's session, 26 Nov 2026)
         var namedFromShown = false
+        var givenFromShown = false
         val values = ArrayList<Detail>()
         resolver.query(
             ContactsContract.Data.CONTENT_URI,
@@ -504,8 +512,12 @@ class ContactSource(private val context: Context) {
                         val shown = raw == nameEntry && parts
                         if (!namedFromShown && (shown || (initials == null && parts))) {
                             initials = Avatars.initials(cursor.getString(4), cursor.getString(5), Locale.getDefault())
-                            givenName = given
                             namedFromShown = shown
+                        }
+                        // The given name apart from the initials (the code review of 27 Nov 2026): the shown name's entry's when it has one, else any entry's, as the favorites row's [shortNames]; a shown entry with a family name only left the widget's pill on the full name
+                        if (given != null && !givenFromShown && (raw == nameEntry || givenName == null)) {
+                            givenName = given
+                            givenFromShown = raw == nameEntry
                         }
                         if (phoneticGiven == null) phoneticGiven = cursor.getString(9)?.trim()?.takeIf { it.isNotEmpty() }
                         if (phoneticFamily == null) phoneticFamily = cursor.getString(10)?.trim()?.takeIf { it.isNotEmpty() }

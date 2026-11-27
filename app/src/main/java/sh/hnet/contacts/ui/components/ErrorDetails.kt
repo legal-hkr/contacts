@@ -3,6 +3,7 @@ package sh.hnet.contacts.ui.components
 import android.content.ClipData
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
@@ -58,16 +60,15 @@ fun ErrorDetailsDialog(error: ErrorDetails, extra: Pair<String, () -> Unit>? = n
                 Text(error.details, style = MaterialTheme.typography.bodySmall)
             }
         },
-        dismissButton = {
-            DialogDismissButton(onClick = {
-                scope.launch {
-                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(null, error.message + "\n" + error.details)))
-                    Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
-                }
-            }) { Text(stringResource(R.string.button_copy)) }
-        },
+        // One flowing row for the two or three buttons (the code review of 27 Nov 2026): the dialog's own row moves a whole slot to the next line, never part of one, so a Row of Undo import and Close in one slot was squeezed in Polish at 360 dp and a large font
         confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DialogDismissButton(onClick = {
+                    scope.launch {
+                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(null, error.message + "\n" + error.details)))
+                        Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text(stringResource(R.string.button_copy)) }
                 extra?.let { (label, action) ->
                     DialogDismissButton(onClick = {
                         action()

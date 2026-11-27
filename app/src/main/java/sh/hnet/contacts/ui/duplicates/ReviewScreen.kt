@@ -226,7 +226,8 @@ private fun Review(
                 values.forEachIndexed { index, value ->
                     val inContacts = value.origins.mapNotNull { origin -> source.all.entries.firstOrNull { it.rawContactId == origin.rawContactId }?.contactId }.toSet()
                     // Every contact in the order of the cards above, with whether the value is in it
-                    val from = ids.mapNotNull { id -> rows[id]?.let { it to (id in inContacts) } }
+                    // A contact the list hasn't read yet keeps its place empty, so the avatars stay in line with the cards (the code review of 27 Nov 2026)
+                    val from = ids.map { id -> rows[id] to (id in inContacts) }
                     SegmentedListItem(
                         checked = !permanent || value.key in kept,
                         onCheckedChange = { if (permanent) kept = if (it) kept + value.key else kept - value.key },
@@ -293,13 +294,15 @@ private fun Review(
  * Where a value comes from (the owner, 27 Nov 2026, instead of the words Left, Right, Both): the contacts' avatars side by side in the order of the cards above, 28 dp, 4 dp apart; one without the value dimmed to M3's disabled opacity – the avatars' tones may be alike, or the same with the theme's colors only, so the dimming, not the color, tells them apart. With more than three contacts only those having the value, two and "+n". The screen reader hears the names having it.
  */
 @Composable
-private fun SourceAvatars(contacts: List<Pair<ContactRow, Boolean>>) {
-    val names = contacts.filter { it.second }.joinToString(", ") { it.first.name }
+private fun SourceAvatars(contacts: List<Pair<ContactRow?, Boolean>>) {
+    val names = contacts.filter { it.second }.mapNotNull { it.first?.name }.joinToString(", ")
     val shown = if (contacts.size <= 3) contacts else contacts.filter { it.second }.take(2)
     val more = if (contacts.size <= 3) 0 else contacts.count { it.second } - shown.size
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = names }) {
+    // Part of the row's own reading, not a stop of its own (the code review of 27 Nov 2026: merging here split it off the checkbox row)
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = if (names.isEmpty()) Modifier else Modifier.semantics { contentDescription = names }) {
         shown.forEach { (row, has) ->
-            Avatar(row.name, row.lookupKey, row.photo, 28.dp, initials = row.initials, large = row.largePhoto, modifier = if (has) Modifier else Modifier.alpha(DISABLED_ALPHA))
+            if (row == null) Spacer(Modifier.size(28.dp))
+            else Avatar(row.name, row.lookupKey, row.photo, 28.dp, initials = row.initials, large = row.largePhoto, modifier = if (has) Modifier else Modifier.alpha(DISABLED_ALPHA))
         }
         if (more > 0) {
             Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {

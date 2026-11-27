@@ -92,7 +92,10 @@ fun Avatar(name: String, lookupKey: String, photo: String?, size: Dp, modifier: 
     val source = if (fromLarge) large else photo
     val meanwhile = if (fromLarge) photo else hint
     // What is already in memory shows at once: no letter flashing before a photo read a moment ago
-    val image by produceState(source?.let { Photos.peek(it, px) } ?: meanwhile?.let { Photos.peek(it, px) }, source, px) { value = source?.let { Photos.load(context, it, px) } }
+    // A full photo that can't be read falls back to the thumbnail, not to the letters (the code review of 27 Nov 2026)
+    val image by produceState(source?.let { Photos.peek(it, px) } ?: meanwhile?.let { Photos.peek(it, px) }, source, px) {
+        value = source?.let { Photos.load(context, it, px) } ?: if (fromLarge) photo?.let { Photos.load(context, it, px) } else null
+    }
     val bitmap = image
     if (bitmap != null) {
         Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier.size(size).clip(CircleShape))
