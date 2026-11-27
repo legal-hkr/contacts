@@ -1,0 +1,9 @@
+v0.2.1
+
+Zmiany:
+- Odświeżony wygląd: osobne okrągłe przyciski na stronie kontaktu, okrągłe ikony na listach, pełne i obramowane przyciski w oknach dialogowych oraz zaznaczone wiersze bez zmiany koloru i kształtu
+- Przy scalaniu duplikatów awatary kontaktów pokazują, skąd pochodzi każda wartość, zamiast napisów „Lewy” i „Prawy”
+
+Poprawki:
+- Zdjęcia kontaktów w większych awatarach i w widżecie „Ulubione” nie są już rozmyte
+- Strona połączonego kontaktu pokazuje te same inicjały co lista

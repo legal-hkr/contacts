@@ -2,7 +2,7 @@
 
 A private address book for Android: the contacts already on your phone, with favorites, search in every field, merging of duplicates and vCard import and export, and no Internet access.
 
-**Current version**: v0.2.0
+**Current version**: v0.2.1
 
 Source code and releases: [git.hnet.sh/hkr/contacts](https://git.hnet.sh/hkr/contacts)
 

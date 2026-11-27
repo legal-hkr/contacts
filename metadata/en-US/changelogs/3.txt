@@ -1,0 +1,9 @@
+v0.2.1
+
+Changes:
+- A refreshed look: separate round buttons on the contact page, round icons in lists, filled and outlined buttons in dialogs, and selected rows that no longer change color or shape
+- When merging duplicates, contact avatars show where each value comes from, instead of the labels “Left” and “Right”
+
+Fixes:
+- Contact photos in larger avatars and in the Favorites widget are no longer blurry
+- A joined contact’s page shows the same initials as the list
