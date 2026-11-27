@@ -160,10 +160,6 @@
     <string name="msg_no_duplicates">Nie znaleziono duplikatów.</string>
     <string name="title_same_person">Ta sama osoba?</string>
     <string name="label_after_merging">Po połączeniu</string>
-    <string name="label_tag_left">Lewy</string>
-    <string name="label_tag_right">Prawy</string>
-    <string name="label_tag_both">W obu</string>
-    <string name="label_tag_all">We wszystkich</string>
     <string name="button_merge">Połącz</string>
     <string name="button_not_same_person">To nie ta sama osoba</string>
     <string name="msg_merged">Połączono kontakty: %1$s</string>

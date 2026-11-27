@@ -40,10 +40,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,6 +82,7 @@ import sh.hnet.contacts.ui.components.Avatar
 import sh.hnet.contacts.ui.components.ContactsAccess
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.FastScroller
+import sh.hnet.contacts.ui.components.RowIcon
 import sh.hnet.contacts.ui.components.TooltipIconButton
 import sh.hnet.contacts.ui.components.groupShapes
 import sh.hnet.contacts.ui.components.onTouchDown
@@ -256,16 +257,15 @@ private fun DuplicatesCard(count: Int, onReview: () -> Unit, onNotNow: () -> Uni
         Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp).background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp)).padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-                Icon(painterResource(R.drawable.ic_call_merge), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-            }
+            RowIcon(R.drawable.ic_call_merge)
             Column {
                 Text(stringResource(R.string.title_possible_duplicates, count), style = MaterialTheme.typography.bodyLarge)
                 Text(stringResource(R.string.desc_possible_duplicates), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Row(Modifier.align(Alignment.End).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onNotNow) { Text(stringResource(R.string.button_not_now)) }
+            // A pair on a card as a dialog's pair, the main action tonal: a suggestion in the list shouldn't outshout the contacts (the owner, 27 Nov 2026; a text button had no shape on the card)
+            OutlinedButton(onClick = onNotNow) { Text(stringResource(R.string.button_not_now)) }
             FilledTonalButton(onClick = onReview) { Text(stringResource(R.string.button_review)) }
         }
     }

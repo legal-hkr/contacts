@@ -33,9 +33,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -48,7 +50,6 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -98,7 +99,10 @@ import sh.hnet.contacts.model.Source
 import sh.hnet.contacts.ui.accounts.MoveDialog
 import sh.hnet.contacts.ui.components.Avatar
 import sh.hnet.contacts.ui.components.DestructiveButton
+import sh.hnet.contacts.ui.components.DialogConfirmButton
+import sh.hnet.contacts.ui.components.DialogDismissButton
 import sh.hnet.contacts.ui.components.EmptyState
+import sh.hnet.contacts.ui.components.RowIcon
 import sh.hnet.contacts.ui.components.TooltipIconButton
 import sh.hnet.contacts.ui.components.groupShapes
 import sh.hnet.contacts.ui.components.settingsRowColors
@@ -377,16 +381,14 @@ private fun ReadOnlyCard(sources: List<Source>) {
 }
 
 /**
- * The quick actions (SPEC §6.3): icon-only tonal buttons in one connected group, 56 dp high and of
- * equal width, only those that apply; outer corners 20 dp, inner 6 dp. Absent when none applies.
+ * The quick actions (SPEC §6.3): icon-only tonal buttons, 56 dp high and of equal width, only those that apply; each a full pill, a little squarer while pressed as Dialer's End, 8 dp apart (the owner, 26 Nov 2026: no longer one connected group). Absent when none applies.
  */
 @Composable
 private fun QuickActions(actions: List<QuickAction>) {
     if (actions.isEmpty()) return
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        actions.forEachIndexed { index, action ->
-            val start = if (index == 0) 20.dp else 6.dp
-            val end = if (index == actions.lastIndex) 20.dp else 6.dp
+    // Separate pills of equal width, 8 dp apart (the owner, 26 Nov 2026), instead of one connected group with rounded outer corners
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        actions.forEach { action ->
             // The weight on a box of the row itself: given to the tooltip's own wrapper it didn't reach the row, and the first button took the whole width
             Box(Modifier.weight(1f)) {
                 TooltipBox(
@@ -396,7 +398,8 @@ private fun QuickActions(actions: List<QuickAction>) {
                 ) {
                     FilledTonalButton(
                         onClick = action.onClick,
-                        shape = RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end),
+                        // As Dialer's buttons (the owner, 27 Nov 2026: the family keeps to Dialer): 16 dp while pressed, as its tiles
+                        shapes = ButtonDefaults.shapes(shape = CircleShape, pressedShape = RoundedCornerShape(16.dp)),
                         modifier = Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = action.label },
                     ) {
                         Icon(painterResource(action.icon), contentDescription = null)
@@ -445,9 +448,7 @@ internal fun DetailGroup(kind: DetailKind, values: List<Detail>, region: String,
                 colors = settingsRowColors(),
                 leadingContent = {
                     if (index == 0) {
-                        Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-                            Icon(painterResource(icon(kind, detail)), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                        }
+                        RowIcon(icon(kind, detail))
                     } else {
                         Spacer(Modifier.width(40.dp))
                     }
@@ -524,7 +525,7 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
                     onClick = action,
                     shapes = groupShapes(index, rows.size),
                     colors = settingsRowColors(),
-                    leadingContent = { IconBox(icon) },
+                    leadingContent = { RowIcon(icon) },
                     supportingContent = when (label) {
                         R.string.menu_share -> ({ Text(stringResource(R.string.desc_share_vcard)) })
                         R.string.menu_separate -> ({ Text(stringResource(R.string.desc_entries, contact.sources.size)) })
@@ -579,7 +580,7 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
             title = { Text(stringResource(R.string.title_separate)) },
             text = { Text(stringResource(R.string.msg_separate, contact.sources.size, accounts)) },
             confirmButton = {
-                TextButton(onClick = {
+                DialogConfirmButton(onClick = {
                     separating = false
                     messageScope.launch {
                         app.writer.separate(contact.id)
@@ -587,7 +588,7 @@ private fun Actions(contact: ContactDetails, snackbars: SnackbarHostState, messa
                     }
                 }) { Text(stringResource(R.string.button_separate)) }
             },
-            dismissButton = { TextButton(onClick = { separating = false }) { Text(stringResource(R.string.button_cancel)) } },
+            dismissButton = { DialogDismissButton(onClick = { separating = false }) { Text(stringResource(R.string.button_cancel)) } },
         )
     }
 }
@@ -598,13 +599,6 @@ private fun MoveOne(contact: ContactDetails, targets: List<AccountInfo>, onMoved
         onDone()
         onMoved(moved, target, contact.name)
     }, onDismiss = onDone)
-}
-
-@Composable
-private fun IconBox(@DrawableRes icon: Int) {
-    Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-        Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-    }
 }
 
 /** Where the contact comes from (SPEC §6.5): one row per entry, its account and the account's app; read-only ones marked. */
@@ -625,9 +619,7 @@ private fun Sources(sources: List<Source>) {
                     shapes = groupShapes(index, sources.size),
                     colors = settingsRowColors(),
                     leadingContent = {
-                        Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-                            Icon(painterResource(if (source.local) R.drawable.ic_smartphone else R.drawable.ic_cloud_sync), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                        }
+                        RowIcon(if (source.local) R.drawable.ic_smartphone else R.drawable.ic_cloud_sync)
                     },
                     supportingContent = { Text(if (source.readOnly) stringResource(R.string.label_read_only_suffix, app) else app) },
                     trailingContent = if (source.readOnly) ({ Icon(painterResource(R.drawable.ic_lock), contentDescription = null) }) else null,

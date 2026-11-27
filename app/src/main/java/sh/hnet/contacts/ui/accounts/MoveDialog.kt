@@ -14,7 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +34,8 @@ import sh.hnet.contacts.ContactsApplication
 import sh.hnet.contacts.R
 import sh.hnet.contacts.data.AccountInfo
 import sh.hnet.contacts.data.Moved
+import sh.hnet.contacts.ui.components.DialogConfirmButton
+import sh.hnet.contacts.ui.components.DialogDismissButton
 import sh.hnet.contacts.ui.components.SettingsRadioRow
 import sh.hnet.contacts.ui.components.groupShapes
 
@@ -70,8 +71,8 @@ fun MoveDialog(contacts: List<Long>?, name: String?, targets: List<AccountInfo>,
             }
         },
         confirmButton = {
-            TextButton(enabled = chosen != null && !busy, onClick = {
-                val target = chosen ?: return@TextButton
+            DialogConfirmButton(enabled = chosen != null && !busy, onClick = {
+                val target = chosen ?: return@DialogConfirmButton
                 busy = true
                 // In the app's scope: a dialog gone midway (the activity recreated by a theme or language change) would cancel the move after the copies were written, and with onMoved never called the old entries stayed beside them with no Undo
                 app.appScope.launch {
@@ -94,6 +95,6 @@ fun MoveDialog(contacts: List<Long>?, name: String?, targets: List<AccountInfo>,
                 }
             }
         },
-        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } },
+        dismissButton = { DialogDismissButton(enabled = !busy, onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } },
     )
 }

@@ -164,10 +164,6 @@
     <string name="msg_no_duplicates">No duplicates found.</string>
     <string name="title_same_person">Same person?</string>
     <string name="label_after_merging">After joining</string>
-    <string name="label_tag_left">Left</string>
-    <string name="label_tag_right">Right</string>
-    <string name="label_tag_both">Both</string>
-    <string name="label_tag_all">All</string>
     <string name="button_merge">Join</string>
     <string name="button_not_same_person">Not the same person</string>
     <string name="msg_merged">Contacts joined: %1$s</string>

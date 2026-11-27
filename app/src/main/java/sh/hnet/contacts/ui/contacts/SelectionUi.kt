@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +38,8 @@ import sh.hnet.contacts.R
 import sh.hnet.contacts.data.Deletion
 import sh.hnet.contacts.data.Sharing
 import sh.hnet.contacts.model.ContactRow
+import sh.hnet.contacts.ui.components.DialogConfirmButton
+import sh.hnet.contacts.ui.components.DialogDismissButton
 import sh.hnet.contacts.ui.components.TooltipIconButton
 
 /** The selection's top bar (SPEC §4.7): Close, "Selected: 3", Select all (again: none). */
@@ -171,13 +172,13 @@ fun SelectionToolbar(
                 Text(if (deletion.skipped > 0) text + " " + stringResource(R.string.msg_delete_skips_read_only, deletion.skipped) else text)
             },
             confirmButton = {
-                TextButton(onClick = {
+                DialogConfirmButton(onClick = {
                     asking = null
                     onDone()
                     onDelete(deletion, deleted.format(deletion.contacts.size))
-                }) { Text(stringResource(R.string.button_delete), color = MaterialTheme.colorScheme.error) }
+                }, destructive = true) { Text(stringResource(R.string.button_delete)) }
             },
-            dismissButton = { TextButton(onClick = { asking = null }) { Text(stringResource(R.string.button_cancel)) } },
+            dismissButton = { DialogDismissButton(onClick = { asking = null }) { Text(stringResource(R.string.button_cancel)) } },
         )
     }
 }

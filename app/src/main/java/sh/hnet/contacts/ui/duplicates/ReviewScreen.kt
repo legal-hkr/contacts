@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -33,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -46,10 +46,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -61,9 +63,12 @@ import sh.hnet.contacts.R
 import sh.hnet.contacts.data.EditEntry
 import sh.hnet.contacts.data.MergeSource
 import sh.hnet.contacts.data.Saved
+import sh.hnet.contacts.model.ContactRow
 import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.FormValue
 import sh.hnet.contacts.ui.components.Avatar
+import sh.hnet.contacts.ui.components.DialogConfirmButton
+import sh.hnet.contacts.ui.components.DialogDismissButton
 import sh.hnet.contacts.ui.components.SettingsRadioRow
 import sh.hnet.contacts.ui.components.TooltipIconButton
 import sh.hnet.contacts.ui.components.groupShapes
@@ -220,20 +225,15 @@ private fun Review(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 values.forEachIndexed { index, value ->
                     val inContacts = value.origins.mapNotNull { origin -> source.all.entries.firstOrNull { it.rawContactId == origin.rawContactId }?.contactId }.toSet()
-                    val tag = when {
-                        inContacts.size == ids.size -> stringResource(if (ids.size == 2) R.string.label_tag_both else R.string.label_tag_all)
-                        ids.size == 2 -> stringResource(if (ids.first() in inContacts) R.string.label_tag_left else R.string.label_tag_right)
-                        else -> source.all.entries.firstOrNull { it.rawContactId == value.origins.first().rawContactId }?.let { accountOf(it) }.orEmpty()
-                    }
+                    // Every contact in the order of the cards above, with whether the value is in it
+                    val from = ids.mapNotNull { id -> rows[id]?.let { it to (id in inContacts) } }
                     SegmentedListItem(
                         checked = !permanent || value.key in kept,
                         onCheckedChange = { if (permanent) kept = if (it) kept + value.key else kept - value.key },
                         shapes = groupShapes(index, values.size),
                         colors = settingsRowColors(),
                         leadingContent = if (permanent) ({ Checkbox(checked = value.key in kept, onCheckedChange = null) }) else null,
-                        trailingContent = {
-                            Text(tag, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(96.dp).background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
-                        },
+                        trailingContent = { SourceAvatars(from) },
                         supportingContent = typeName(value).takeIf { it.isNotEmpty() }?.let { { Text(it) } },
                     ) {
                         Text(valueText(value), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -256,7 +256,8 @@ private fun Review(
                     Text(stringResource(if (permanent) R.string.button_merge_permanent else R.string.button_merge))
                 }
             }
-            OutlinedButton(onClick = if (suggested) onApart else onCancel, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            // 56 dp as the one above it (the owner, 27 Nov 2026): M3's default 40 dp made it much lower
+            OutlinedButton(onClick = if (suggested) onApart else onCancel, enabled = !busy, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Text(stringResource(if (suggested) R.string.button_not_same_person else R.string.button_cancel))
             }
         }
@@ -269,9 +270,9 @@ private fun Review(
             title = { Text(stringResource(R.string.title_merge_permanent)) },
             text = { Text(if (deleted.isEmpty()) stringResource(R.string.msg_merge_permanent_none) else stringResource(R.string.msg_merge_permanent, accounts)) },
             confirmButton = {
-                TextButton(onClick = {
+                DialogConfirmButton(onClick = {
                     confirming = false
-                    val chosenTarget = target ?: return@TextButton
+                    val chosenTarget = target ?: return@DialogConfirmButton
                     busy = true
                     scope.launch {
                         val name = names.firstOrNull { it.first == nameFrom }?.second
@@ -281,12 +282,35 @@ private fun Review(
                         busy = false
                         if (saved != null) onMerged(saved, name?.let { nameOf(listOf(it)) } ?: rows[ids.first()]?.name.orEmpty()) else onFailed()
                     }
-                }) { Text(stringResource(R.string.button_merge_permanent), color = MaterialTheme.colorScheme.error) }
+                }, destructive = true) { Text(stringResource(R.string.button_merge_permanent)) }
             },
-            dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.button_cancel)) } },
+            dismissButton = { DialogDismissButton(onClick = { confirming = false }) { Text(stringResource(R.string.button_cancel)) } },
         )
     }
 }
+
+/**
+ * Where a value comes from (the owner, 27 Nov 2026, instead of the words Left, Right, Both): the contacts' avatars side by side in the order of the cards above, 28 dp, 4 dp apart; one without the value dimmed to M3's disabled opacity – the avatars' tones may be alike, or the same with the theme's colors only, so the dimming, not the color, tells them apart. With more than three contacts only those having the value, two and "+n". The screen reader hears the names having it.
+ */
+@Composable
+private fun SourceAvatars(contacts: List<Pair<ContactRow, Boolean>>) {
+    val names = contacts.filter { it.second }.joinToString(", ") { it.first.name }
+    val shown = if (contacts.size <= 3) contacts else contacts.filter { it.second }.take(2)
+    val more = if (contacts.size <= 3) 0 else contacts.count { it.second } - shown.size
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = names }) {
+        shown.forEach { (row, has) ->
+            Avatar(row.name, row.lookupKey, row.photo, 28.dp, initials = row.initials, large = row.largePhoto, modifier = if (has) Modifier else Modifier.alpha(DISABLED_ALPHA))
+        }
+        if (more > 0) {
+            Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                Text(stringResource(R.string.label_more_avatars, more), color = MaterialTheme.colorScheme.onSecondaryContainer, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+/** M3's opacity for disabled content (its list tokens' `ItemDisabled…Opacity`). */
+private const val DISABLED_ALPHA = 0.38f
 
 @Composable
 private fun Header(label: Int) {

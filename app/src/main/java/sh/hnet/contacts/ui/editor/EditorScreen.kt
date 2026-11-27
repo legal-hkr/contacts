@@ -84,6 +84,8 @@ import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.FormValue
 import sh.hnet.contacts.ui.accounts.AccountPicker
 import sh.hnet.contacts.ui.components.Avatar
+import sh.hnet.contacts.ui.components.DialogConfirmButton
+import sh.hnet.contacts.ui.components.DialogDismissButton
 import sh.hnet.contacts.ui.components.EmptyState
 import sh.hnet.contacts.ui.components.TooltipIconButton
 
@@ -209,13 +211,13 @@ fun EditorScreen(
             title = { Text(stringResource(R.string.title_discard_changes)) },
             text = { Text(stringResource(R.string.msg_discard_changes)) },
             confirmButton = {
-                TextButton(onClick = {
+                DialogConfirmButton(onClick = {
                     discarding = false
                     // After a rejection Back's Discard is the card's: a local entry gets its state back (variant A)
                     if (viewModel.rejected != null) viewModel.discardRejected { saved -> saved?.let(onSaved) ?: onClose() } else onClose()
                 }) { Text(stringResource(R.string.button_discard)) }
             },
-            dismissButton = { TextButton(onClick = { discarding = false }) { Text(stringResource(R.string.button_keep_editing)) } },
+            dismissButton = { DialogDismissButton(onClick = { discarding = false }) { Text(stringResource(R.string.button_keep_editing)) } },
         )
     }
 }

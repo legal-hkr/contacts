@@ -32,7 +32,6 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,6 +55,8 @@ import sh.hnet.contacts.model.Detail
 import sh.hnet.contacts.model.DetailKind
 import sh.hnet.contacts.model.EditKind
 import sh.hnet.contacts.model.FormValue
+import sh.hnet.contacts.ui.components.DialogConfirmButton
+import sh.hnet.contacts.ui.components.DialogDismissButton
 import sh.hnet.contacts.ui.contact.dateText
 
 /** A type a value can take: the storage's code and its name; [protocol] for messaging, where the choice is a protocol. */
@@ -197,8 +198,8 @@ private fun CustomLabelDialog(initial: String, onDone: (String) -> Unit, onDismi
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.title_custom_label)) },
         text = { OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
-        confirmButton = { TextButton(enabled = text.isNotBlank(), onClick = { onDone(text.trim()) }) { Text(stringResource(R.string.button_done)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } },
+        confirmButton = { DialogConfirmButton(enabled = text.isNotBlank(), onClick = { onDone(text.trim()) }) { Text(stringResource(R.string.button_done)) } },
+        dismissButton = { DialogDismissButton(onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } },
     )
 }
 
@@ -221,8 +222,8 @@ fun DateDialog(value: FormValue, onDone: (String) -> Unit, onDismiss: () -> Unit
     val text = picked?.let { if (noYear) "--" + DateTimeFormatter.ofPattern("MM-dd").format(MonthDay.from(it)) else it.toString() }
     DatePickerDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(enabled = text != null, onClick = { text?.let(onDone) }) { Text(stringResource(R.string.button_done)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } },
+        confirmButton = { DialogConfirmButton(enabled = text != null, onClick = { text?.let(onDone) }) { Text(stringResource(R.string.button_done)) } },
+        dismissButton = { DialogDismissButton(onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } },
     ) {
         DatePicker(
             state,

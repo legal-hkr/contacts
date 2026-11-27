@@ -2,6 +2,7 @@ package sh.hnet.contacts.ui.components
 
 import android.content.ClipData
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
@@ -14,7 +15,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -59,7 +59,7 @@ fun ErrorDetailsDialog(error: ErrorDetails, extra: Pair<String, () -> Unit>? = n
             }
         },
         dismissButton = {
-            TextButton(onClick = {
+            DialogDismissButton(onClick = {
                 scope.launch {
                     clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(null, error.message + "\n" + error.details)))
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
@@ -67,14 +67,14 @@ fun ErrorDetailsDialog(error: ErrorDetails, extra: Pair<String, () -> Unit>? = n
             }) { Text(stringResource(R.string.button_copy)) }
         },
         confirmButton = {
-            Row {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 extra?.let { (label, action) ->
-                    TextButton(onClick = {
+                    DialogDismissButton(onClick = {
                         action()
                         onDismiss()
                     }) { Text(label) }
                 }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.button_close)) }
+                DialogConfirmButton(onClick = onDismiss) { Text(stringResource(R.string.button_close)) }
             }
         },
     )

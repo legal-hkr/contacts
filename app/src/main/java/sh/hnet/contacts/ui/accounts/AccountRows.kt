@@ -3,8 +3,6 @@
 package sh.hnet.contacts.ui.accounts
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -15,7 +13,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -29,6 +26,7 @@ import androidx.core.graphics.drawable.toBitmap
 import java.text.NumberFormat
 import sh.hnet.contacts.R
 import sh.hnet.contacts.data.AccountInfo
+import sh.hnet.contacts.ui.components.RowIconCircle
 import sh.hnet.contacts.ui.components.settingsRowColors
 
 /** The account app's own icon, as the system's account settings show it; null when the app doesn't give one. */
@@ -46,15 +44,15 @@ private fun rememberAccountIcon(account: AccountInfo): ImageBitmap? {
     }
 }
 
-/** The 40 dp box at a row's start (SPEC §8.1): the account app's icon, `cloud_sync` when it has none, `smartphone` for local contacts. */
+/** The 40 dp circle at a row's start (SPEC §8.1, the shape as [RowIcon]): the account app's icon, `cloud_sync` when it has none, `smartphone` for local contacts. */
 @Composable
 fun AccountIcon(account: AccountInfo) {
     val icon = rememberAccountIcon(account)
-    Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+    RowIconCircle {
         if (icon != null) {
             Image(icon, contentDescription = null, modifier = Modifier.size(24.dp))
         } else {
-            Icon(painterResource(if (account.local) R.drawable.ic_smartphone else R.drawable.ic_cloud_sync), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Icon(painterResource(if (account.local) R.drawable.ic_smartphone else R.drawable.ic_cloud_sync), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }
